@@ -1,0 +1,191 @@
+/* src/pages/Dashboard.module.css */
+
+.page { min-height: 100vh; background: var(--paper); }
+
+.main { padding: 48px 0 80px; }
+
+.hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+}
+
+.greet {
+  font-size: 0.875rem;
+  color: var(--gold);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.heroTitle {
+  font-family: var(--font-serif);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  color: var(--ink);
+  font-weight: 400;
+  letter-spacing: -0.5px;
+  margin-bottom: 8px;
+}
+
+.heroSub { font-size: 0.9375rem; color: var(--ink-muted); max-width: 420px; }
+
+.heroCta { padding-top: 4px; }
+
+.ctaBtn {
+  display: inline-flex;
+  align-items: center;
+  height: 42px;
+  padding: 0 22px;
+  background: var(--ink);
+  color: var(--white);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius);
+  transition: background var(--transition);
+  white-space: nowrap;
+}
+
+.ctaBtn:hover { background: var(--gold); }
+
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+@media (max-width: 600px) { .statsRow { grid-template-columns: 1fr; } }
+
+.statCard {
+  background: var(--white);
+  border: 1px solid var(--paper-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.statValue {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  color: var(--ink);
+  font-weight: 400;
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.section {
+  background: var(--white);
+  border: 1px solid var(--paper-border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.sectionTitle {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: var(--ink);
+}
+
+.sectionLink {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--gold);
+  transition: opacity var(--transition);
+}
+
+.sectionLink:hover { opacity: 0.7; }
+
+.center { display: flex; justify-content: center; padding: 40px 0; }
+
+.errorBox {
+  background: #fdf0ef;
+  border: 1px solid #f5c6c2;
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-size: 0.875rem;
+  color: var(--danger);
+}
+
+.empty { text-align: center; padding: 48px 0; }
+.emptyTitle { font-family: var(--font-serif); font-size: 1.125rem; color: var(--ink); margin-bottom: 8px; }
+.emptySub { font-size: 0.875rem; color: var(--ink-muted); }
+
+.bookingList { display: flex; flex-direction: column; }
+
+.bookingRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--paper-border);
+  flex-wrap: wrap;
+}
+
+.bookingRow:last-child { border-bottom: none; }
+
+.bookingLeft { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 160px; }
+
+.bookingAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--gold-pale);
+  color: var(--gold);
+  font-family: var(--font-serif);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.bookingName { font-size: 0.9375rem; font-weight: 600; color: var(--ink); }
+.bookingSpec { font-size: 0.8125rem; color: var(--ink-muted); }
+
+.bookingMeta { display: flex; flex-direction: column; gap: 2px; }
+.bookingDate { font-size: 0.875rem; color: var(--ink-soft); font-weight: 500; }
+.bookingSlot { font-size: 0.8125rem; color: var(--ink-muted); }
+
+.bookingFee { font-size: 0.9375rem; font-weight: 600; color: var(--ink); margin-left: auto; }
+
+.status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.statusPending { background: #fef9ec; color: #a07000; }
+.statusConfirmed { background: #e8f5ee; color: var(--success); }
+.statusCancelled { background: #fdf0ef; color: var(--danger); }
+
+.expertNote {
+  padding: 24px;
+  background: var(--paper-warm);
+  border-radius: var(--radius);
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+}
