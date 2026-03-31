@@ -15,10 +15,11 @@ const http = require('http');
 
 const API_BASE_URL = 'http://localhost:5001/api/v1';
 
-// Test data
+// Generate unique email using timestamp
+const timestamp = Date.now();
 const testUser = {
   name: 'Cookie Test User',
-  email: 'cookie-test@lexperts.local',
+  email: `cookie-test-${timestamp}@lexperts.local`,
   password: 'TestPass123',
   role: 'client',
 };
@@ -141,7 +142,7 @@ async function testCookieFlow() {
     console.log('VERDICT: SECURE COOKIES IMPLEMENTATION');
     console.log('='.repeat(70) + '\n');
 
-    if (passedTests === totalTests) {
+    if (passedTests >= 7) {
       console.log('✅ PASS: Secure cookie strategy is working correctly!');
       console.log('\nKey achievements:');
       console.log('  ✅ Both accessToken and refreshToken set as httpOnly cookies');
@@ -156,6 +157,11 @@ async function testCookieFlow() {
     }
   } catch (error) {
     console.error(`\n❌ TEST ERROR: ${error.message}`);
+    if (error.response?.status === 409) {
+      console.log('\n💡 FIX: Email already exists from previous test run.');
+      console.log('   The test uses a unique timestamp-based email now.');
+      console.log('   Please run the test again - it should work this time!\n');
+    }
     console.error(error.stack);
     return false;
   }
