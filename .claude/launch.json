@@ -1,0 +1,20 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "LExperts API (Backend)",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["nodemon", "src/server.js"],
+      "port": 5001,
+      "autoPort": false,
+      "cwd": "/Users/aryanrangani/Downloads/College/SEM 6/lux"
+    },
+    {
+      "name": "LExperts Client (Frontend)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5173,
+      "cwd": "/Users/aryanrangani/Downloads/College/SEM 6/lux/client"
+    }
+  ]
+}

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
-import Spinner from '../components/Spinner'
+import ErrorBoundary from '../components/ErrorBoundary'
+import { ProfileFormSkeleton } from '../components/LoadingSkeleton'
 import { createProfile, getMyProfile, updateProfile } from '../services/expert.service'
 import styles from './ExpertProfile.module.css'
 
