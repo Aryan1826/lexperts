@@ -26,6 +26,9 @@ export default function Navbar() {
           <Link to="/experts" className={`${styles.link} ${pathname === '/experts' ? styles.active : ''}`}>
             Find Experts
           </Link>
+          <Link to="/my-bookings" className={`${styles.link} ${pathname === '/my-bookings' ? styles.active : ''}`}>
+            My Bookings
+          </Link>
         </div>
         <div className={styles.right}>
           <span className={styles.userName}>{user?.name}</span>
