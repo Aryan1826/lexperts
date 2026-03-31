@@ -6,6 +6,7 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["nodemon", "src/server.js"],
       "port": 5001,
+      "autoPort": false,
       "cwd": "/Users/aryanrangani/Downloads/College/SEM 6/lux"
     },
     {
