@@ -1,17 +1,13 @@
 // src/components/Navbar.jsx
 
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { getUser, logout } from '../services/auth.service'
 import styles from './Navbar.module.css'
 
 export default function Navbar() {
   const user = getUser()
-  const navigate = useNavigate()
   const { pathname } = useLocation()
-
-  const handleLogout = async () => {
-    await logout()
-  }
+  const isExpert = user?.role === 'expert'
 
   return (
     <nav className={styles.nav}>
@@ -23,16 +19,30 @@ export default function Navbar() {
           <Link to="/dashboard" className={`${styles.link} ${pathname === '/dashboard' ? styles.active : ''}`}>
             Dashboard
           </Link>
-          <Link to="/experts" className={`${styles.link} ${pathname === '/experts' ? styles.active : ''}`}>
-            Find Experts
-          </Link>
-          <Link to="/my-bookings" className={`${styles.link} ${pathname === '/my-bookings' ? styles.active : ''}`}>
-            My Bookings
-          </Link>
+
+          {isExpert ? (
+            <>
+              <Link to="/expert-dashboard" className={`${styles.link} ${pathname === '/expert-dashboard' ? styles.active : ''}`}>
+                My Bookings
+              </Link>
+              <Link to="/expert-profile" className={`${styles.link} ${pathname === '/expert-profile' ? styles.active : ''}`}>
+                Profile
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link to="/experts" className={`${styles.link} ${pathname === '/experts' ? styles.active : ''}`}>
+                Find Experts
+              </Link>
+              <Link to="/my-bookings" className={`${styles.link} ${pathname === '/my-bookings' ? styles.active : ''}`}>
+                My Bookings
+              </Link>
+            </>
+          )}
         </div>
         <div className={styles.right}>
           <span className={styles.userName}>{user?.name}</span>
-          <button className={styles.logoutBtn} onClick={handleLogout}>Sign out</button>
+          <button className={styles.logoutBtn} onClick={logout}>Sign out</button>
         </div>
       </div>
     </nav>
