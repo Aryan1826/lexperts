@@ -15,7 +15,15 @@ const timeSlotSchema = new mongoose.Schema(
       match: [/^([01]\d|2[0-3]):([0-5]\d)$/, 'End time must be in HH:MM format'],
     },
   },
-  { _id: false }
+  {
+    _id: false,
+    validate: {
+      validator: function (slot) {
+        return slot.end > slot.start;
+      },
+      message: 'End time must be after start time',
+    },
+  }
 );
 
 const availabilitySchema = new mongoose.Schema(
