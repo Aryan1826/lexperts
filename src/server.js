@@ -3,6 +3,7 @@
 const dotenv = require('dotenv');
 dotenv.config();
 
+const { validateEnvironment } = require('./config/environment');
 const mongoose = require('mongoose');
 const app = require('./app');
 const logger = require('./utils/logger');
@@ -18,6 +19,8 @@ const connectDB = async () => {
 };
 
 const startServer = async () => {
+  // Validate environment at startup
+  validateEnvironment();
   await connectDB();
   server = app.listen(PORT, () => {
     logger.info(`LExperts API running in ${process.env.NODE_ENV} mode on port ${PORT}`);
