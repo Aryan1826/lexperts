@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
-import Spinner from '../components/Spinner'
+import ErrorBoundary from '../components/ErrorBoundary'
+import { BookingsPageSkeleton } from '../components/LoadingSkeleton'
 import { getExpertBookings, confirmBooking, cancelBooking } from '../services/booking.service'
 import styles from './ExpertDashboard.module.css'
 
@@ -136,7 +137,7 @@ export default function ExpertDashboard() {
             ))}
           </div>
 
-          {loading && <Spinner />}
+          {loading && <BookingsPageSkeleton cardCount={3} statsCount={4} />}
 
           {error && !loading && (
             <div className={styles.errorBox}>
