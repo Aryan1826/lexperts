@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import Experts from './pages/Experts'
+import MyBookings from './pages/MyBookings'
 import { getToken } from './services/auth.service'
 
 const PrivateRoute = ({ children }) => {
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/experts" element={<PrivateRoute><Experts /></PrivateRoute>} />
+        <Route path="/my-bookings" element={<PrivateRoute><MyBookings /></PrivateRoute>} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
