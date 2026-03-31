@@ -6,7 +6,6 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
-const mongoSanitize = require('express-mongo-sanitize');
 
 const logger = require('./utils/logger');
 const requestId = require('./middleware/requestId.middleware');
@@ -69,8 +68,27 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(cookieParser());
 
 // ─── NoSQL injection sanitization ────────────────────────────────────────────
-// Strips keys containing '$' or '.' from req.body, req.query, req.params
-app.use(mongoSanitize());
+// Custom middleware to prevent NoSQL injection by removing keys with '$' and '.'
+// (express-mongo-sanitize is incompatible with Express v5)
+const sanitizeData = (data) => {
+  if (typeof data !== 'object' || data === null) return data;
+  const sanitized = Array.isArray(data) ? [...data] : { ...data };
+  for (const key in sanitized) {
+    if (key.includes('$') || key.includes('.')) {
+      delete sanitized[key];
+    } else if (typeof sanitized[key] === 'object') {
+      sanitized[key] = sanitizeData(sanitized[key]);
+    }
+  }
+  return sanitized;
+};
+
+app.use((req, res, next) => {
+  req.body = sanitizeData(req.body);
+  req.query = sanitizeData(req.query);
+  req.params = sanitizeData(req.params);
+  next();
+});
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
