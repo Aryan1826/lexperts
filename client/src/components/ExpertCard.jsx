@@ -40,24 +40,7 @@ export default function ExpertCard({ expert }) {
     setSuccess('')
 
     if (!form.date || !form.start || !form.end) {
-     const selectedDay = new Date(form.date).toLocaleString('en-US', {
-  weekday: 'long',
-})
-
-const isAvailable = expert.availability?.some(
-  (a) => a.day === selectedDay
-)
-
-if (!isAvailable) {
-  setError(`Expert is not available on ${selectedDay}`)
-  setSubmitting(false)
-  return
-}
-
-
-
-
-      setError('All fields are required.')
+      setError('Please fill in all fields: date, start time, and end time.')
       return
     }
     if (form.end <= form.start) {

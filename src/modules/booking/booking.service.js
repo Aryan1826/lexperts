@@ -37,6 +37,7 @@ const isSlotAvailable = async (expertId, date, slot, excludeBookingId = null) =>
 
 /**
  * Validate that a requested slot falls within expert's available slots for that day.
+ * If the expert has not configured any availability, all time slots are permitted.
  */
 const validateSlotAgainstAvailability = (expert, date, slot) => {
   const bookingDate = new Date(date);
@@ -45,6 +46,12 @@ const validateSlotAgainstAvailability = (expert, date, slot) => {
   // Validate day name is expected
   if (!VALID_DAYS.includes(dayName)) {
     throw new AppError(`Invalid day: ${dayName}`, 500);
+  }
+
+  // If expert hasn't configured availability yet, allow bookings any time.
+  // Experts can restrict availability later via the availability picker.
+  if (!expert.availability || expert.availability.length === 0) {
+    return;
   }
 
   const availability = expert.availability.find((a) => a.day === dayName);
