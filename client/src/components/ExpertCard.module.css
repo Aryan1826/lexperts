@@ -264,3 +264,12 @@
 
 .submitBtn:hover:not(:disabled) { background: var(--gold-light); }
 .submitBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── Mobile overrides ── */
+@media (max-width: 480px) {
+  .cardMain { gap: 12px; padding: 16px; }
+  .formPanel { padding: 0 16px 16px; }
+  .formActions { flex-direction: column; align-items: stretch; }
+  .feeNote { text-align: center; }
+  .submitBtn { width: 100%; justify-content: center; }
+}
