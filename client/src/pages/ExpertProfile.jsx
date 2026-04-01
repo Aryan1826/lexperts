@@ -1,6 +1,7 @@
 // client/src/pages/ExpertProfile.jsx
 
 import { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
 import Navbar from '../components/Navbar'
 import ErrorBoundary from '../components/ErrorBoundary'
 import { ProfileFormSkeleton } from '../components/LoadingSkeleton'
@@ -30,7 +31,6 @@ export default function ExpertProfile() {
   const [loading, setLoading] = useState(false)
   const [fetchingProfile, setFetchingProfile] = useState(true)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
   const [isEditing, setIsEditing] = useState(false)
   const [profileId, setProfileId] = useState(null)
 
@@ -52,7 +52,8 @@ export default function ExpertProfile() {
         })
         setIsEditing(true)
       }
-    } catch (err) {
+    } catch {
+      // Profile doesn't exist yet (new expert), which is fine
       setIsEditing(false)
     } finally {
       setFetchingProfile(false)
@@ -70,17 +71,14 @@ export default function ExpertProfile() {
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }))
+    setForm((prev) => ({ ...prev, [name]: value }))
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    setSuccess('')
 
+    // Validation — shown inline near the form
     if (form.specialization.length === 0) {
       setError('Please select at least one specialization')
       return
@@ -109,16 +107,14 @@ export default function ExpertProfile() {
 
       if (isEditing && profileId) {
         await updateProfile(profileId, data)
-        setSuccess('Profile updated successfully!')
+        toast.success('Profile updated successfully!')
       } else {
         await createProfile(data)
-        setSuccess('Profile created successfully! You can now start accepting bookings.')
+        toast.success('Profile created! You can now start accepting bookings.')
         setIsEditing(true)
       }
-
-      setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save profile. Please try again.')
+      toast.error(err.response?.data?.message || 'Failed to save profile. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -126,142 +122,149 @@ export default function ExpertProfile() {
 
   if (fetchingProfile) {
     return (
-      <div className={styles.page}>
-        <Navbar />
-        <div className={styles.loadingContainer}>
-          <Spinner />
+      <ErrorBoundary>
+        <div className={styles.page}>
+          <Navbar />
+          <div className="container" style={{ marginTop: '40px' }}>
+            <ProfileFormSkeleton />
+          </div>
         </div>
-      </div>
+      </ErrorBoundary>
     )
   }
 
   return (
-    <div className={styles.page}>
-      <Navbar />
-      <main>
-        <div className={styles.pageHead}>
-          <div className="container">
-            <h1 className={styles.pageTitle}>{isEditing ? 'Edit Your Profile' : 'Create Your Expert Profile'}</h1>
-            <p className={styles.pageSub}>
-              {isEditing
-                ? 'Update your professional information and expertise.'
-                : 'Tell clients about your expertise and availability. This information will help you attract clients.'}
-            </p>
-          </div>
-        </div>
-
-        <div className="container">
-          <div className={styles.formContainer}>
-            {success && (
-              <div className={styles.successBox}>
-                <p>✓ {success}</p>
-              </div>
-            )}
-
-            {error && (
-              <div className={styles.errorBox}>
-                <p>{error}</p>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className={styles.form}>
-              <fieldset className={styles.section}>
-                <legend className={styles.sectionLabel}>
-                  Areas of Specialization <span className={styles.required}>*</span>
-                </legend>
-                <p className={styles.sectionInfo}>Select at least one area you specialize in</p>
-                <div className={styles.checkboxGrid}>
-                  {LEGAL_SPECIALIZATIONS.map((spec) => (
-                    <label key={spec} className={styles.checkboxLabel}>
-                      <input
-                        type="checkbox"
-                        checked={form.specialization.includes(spec)}
-                        onChange={() => handleSpecializationToggle(spec)}
-                        className={styles.checkbox}
-                      />
-                      <span>{spec}</span>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-
-              <div className={styles.formGroup}>
-                <label htmlFor="experience" className={styles.label}>
-                  Years of Experience <span className={styles.required}>*</span>
-                </label>
-                <input
-                  type="number"
-                  id="experience"
-                  name="experience"
-                  value={form.experience}
-                  onChange={handleChange}
-                  min="0"
-                  max="70"
-                  placeholder="e.g., 10"
-                  className={styles.input}
-                  required
-                />
-                <small className={styles.hint}>Enter a number between 0 and 70</small>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label htmlFor="consultationFee" className={styles.label}>
-                  Consultation Fee (₹) <span className={styles.required}>*</span>
-                </label>
-                <input
-                  type="number"
-                  id="consultationFee"
-                  name="consultationFee"
-                  value={form.consultationFee}
-                  onChange={handleChange}
-                  min="0"
-                  step="100"
-                  placeholder="e.g., 500"
-                  className={styles.input}
-                  required
-                />
-                <small className={styles.hint}>Per consultation fee in Indian Rupees</small>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label htmlFor="bio" className={styles.label}>
-                  Professional Bio <span className={styles.required}>*</span>
-                </label>
-                <textarea
-                  id="bio"
-                  name="bio"
-                  value={form.bio}
-                  onChange={handleChange}
-                  minLength="20"
-                  maxLength="1000"
-                  placeholder="Write a brief bio about your background, expertise, and approach to law..."
-                  className={styles.textarea}
-                  rows="6"
-                  required
-                />
-                <small className={styles.hint}>
-                  {form.bio.length}/1000 characters (minimum 20 required)
-                </small>
-              </div>
-
-              <button type="submit" className={styles.submitBtn} disabled={loading}>
-                {loading ? 'Saving...' : isEditing ? 'Update Profile' : 'Create Profile'}
-              </button>
-            </form>
-
-            <div className={styles.tipsBox}>
-              <h4>💡 Tips for a Strong Profile</h4>
-              <ul>
-                <li>Be specific about your areas of expertise</li>
-                <li>Mention your credentials and achievements</li>
-                <li>Keep your bio professional and concise</li>
-                <li>Set fair consultation fees for your experience level</li>
-                <li>You can edit your profile anytime</li>
-              </ul>
+    <ErrorBoundary>
+      <div className={styles.page}>
+        <Navbar />
+        <main>
+          <div className={styles.pageHead}>
+            <div className="container">
+              <h1 className={styles.pageTitle}>
+                {isEditing ? 'Edit Your Profile' : 'Create Your Expert Profile'}
+              </h1>
+              <p className={styles.pageSub}>
+                {isEditing
+                  ? 'Update your professional information and expertise.'
+                  : 'Tell clients about your expertise and availability. This information will help you attract clients.'}
+              </p>
             </div>
           </div>
-        </div>
-      </main>
-    </div>
+
+          <div className="container">
+            <div className={styles.formContainer}>
+              {/* Inline validation error */}
+              {error && (
+                <div className={styles.errorBox}>
+                  <p>{error}</p>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className={styles.form}>
+                {/* Specialization */}
+                <fieldset className={styles.section}>
+                  <legend className={styles.sectionLabel}>
+                    Areas of Specialization <span className={styles.required}>*</span>
+                  </legend>
+                  <p className={styles.sectionInfo}>Select at least one area you specialize in</p>
+                  <div className={styles.checkboxGrid}>
+                    {LEGAL_SPECIALIZATIONS.map((spec) => (
+                      <label key={spec} className={styles.checkboxLabel}>
+                        <input
+                          type="checkbox"
+                          checked={form.specialization.includes(spec)}
+                          onChange={() => handleSpecializationToggle(spec)}
+                          className={styles.checkbox}
+                        />
+                        <span>{spec}</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+
+                {/* Experience */}
+                <div className={styles.formGroup}>
+                  <label htmlFor="experience" className={styles.label}>
+                    Years of Experience <span className={styles.required}>*</span>
+                  </label>
+                  <input
+                    type="number"
+                    id="experience"
+                    name="experience"
+                    value={form.experience}
+                    onChange={handleChange}
+                    min="0"
+                    max="70"
+                    placeholder="e.g., 10"
+                    className={styles.input}
+                    required
+                  />
+                  <small className={styles.hint}>Enter a number between 0 and 70</small>
+                </div>
+
+                {/* Consultation Fee */}
+                <div className={styles.formGroup}>
+                  <label htmlFor="consultationFee" className={styles.label}>
+                    Consultation Fee (₹) <span className={styles.required}>*</span>
+                  </label>
+                  <input
+                    type="number"
+                    id="consultationFee"
+                    name="consultationFee"
+                    value={form.consultationFee}
+                    onChange={handleChange}
+                    min="0"
+                    step="100"
+                    placeholder="e.g., 500"
+                    className={styles.input}
+                    required
+                  />
+                  <small className={styles.hint}>Per consultation fee in Indian Rupees</small>
+                </div>
+
+                {/* Bio */}
+                <div className={styles.formGroup}>
+                  <label htmlFor="bio" className={styles.label}>
+                    Professional Bio <span className={styles.required}>*</span>
+                  </label>
+                  <textarea
+                    id="bio"
+                    name="bio"
+                    value={form.bio}
+                    onChange={handleChange}
+                    minLength="20"
+                    maxLength="1000"
+                    placeholder="Write a brief bio about your background, expertise, and approach to law..."
+                    className={styles.textarea}
+                    rows="6"
+                    required
+                  />
+                  <small className={styles.hint}>
+                    {form.bio.length}/1000 characters (minimum 20 required)
+                  </small>
+                </div>
+
+                {/* Submit Button */}
+                <button type="submit" className={styles.submitBtn} disabled={loading}>
+                  {loading ? 'Saving...' : isEditing ? 'Update Profile' : 'Create Profile'}
+                </button>
+              </form>
+
+              {/* Helpful Tips */}
+              <div className={styles.tipsBox}>
+                <h4>💡 Tips for a Strong Profile</h4>
+                <ul>
+                  <li>Be specific about your areas of expertise</li>
+                  <li>Mention your credentials and achievements</li>
+                  <li>Keep your bio professional and concise</li>
+                  <li>Set fair consultation fees for your experience level</li>
+                  <li>You can edit your profile anytime</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </ErrorBoundary>
   )
 }
