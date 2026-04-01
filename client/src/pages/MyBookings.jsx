@@ -1,8 +1,11 @@
 // src/pages/MyBookings.jsx
 
 import { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
 import Navbar from '../components/Navbar'
-import Spinner from '../components/Spinner'
+import ErrorBoundary from '../components/ErrorBoundary'
+import ConfirmModal from '../components/ConfirmModal'
+import { BookingsPageSkeleton } from '../components/LoadingSkeleton'
 import { getMyBookings, cancelBooking } from '../services/booking.service'
 import styles from './MyBookings.module.css'
 
@@ -26,6 +29,7 @@ export default function MyBookings() {
   const [error, setError] = useState('')
   const [filter, setFilter] = useState('all')
   const [cancellingId, setCancellingId] = useState(null)
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, bookingId: null })
 
   useEffect(() => {
     fetchBookings()
@@ -44,20 +48,33 @@ export default function MyBookings() {
     }
   }
 
-  const handleCancelBooking = async (bookingId) => {
-    if (!window.confirm('Are you sure you want to cancel this booking?')) {
-      return
-    }
+  // Step 1: open confirm modal
+  const handleCancelClick = (bookingId) => {
+    setConfirmModal({ isOpen: true, bookingId })
+  }
+
+  // Step 2: user confirmed → proceed
+  const handleCancelConfirm = async () => {
+    const bookingId = confirmModal.bookingId
+    setConfirmModal({ isOpen: false, bookingId: null })
 
     setCancellingId(bookingId)
     try {
       await cancelBooking(bookingId)
-      setBookings((prev) => prev.map((b) => (b._id === bookingId ? { ...b, status: 'cancelled' } : b)))
+      setBookings((prev) =>
+        prev.map((b) => (b._id === bookingId ? { ...b, status: 'cancelled' } : b))
+      )
+      toast.success('Booking cancelled successfully.')
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to cancel booking.')
+      toast.error(err.response?.data?.message || 'Failed to cancel booking.')
     } finally {
       setCancellingId(null)
     }
+  }
+
+  // Step 2 (alt): user dismissed → close modal
+  const handleCancelDismiss = () => {
+    setConfirmModal({ isOpen: false, bookingId: null })
   }
 
   const filteredBookings =
@@ -70,159 +87,165 @@ export default function MyBookings() {
   const cancelledBookings = bookings.filter((b) => b.status === 'cancelled')
 
   return (
-    <div className={styles.page}>
-      <Navbar />
-      <main>
-        <div className={styles.pageHead}>
+    <ErrorBoundary>
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title="Cancel Booking"
+        message="Are you sure you want to cancel this booking? This action cannot be undone."
+        confirmLabel="Yes, Cancel It"
+        cancelLabel="Keep Booking"
+        confirmVariant="danger"
+        onConfirm={handleCancelConfirm}
+        onCancel={handleCancelDismiss}
+      />
+
+      <div className={styles.page}>
+        <Navbar />
+        <main>
+          <div className={styles.pageHead}>
+            <div className="container">
+              <h1 className={styles.pageTitle}>My Bookings</h1>
+              <p className={styles.pageSub}>Manage your consultation appointments with legal experts.</p>
+            </div>
+          </div>
+
           <div className="container">
-            <h1 className={styles.pageTitle}>My Bookings</h1>
-            <p className={styles.pageSub}>Manage your consultation appointments with legal experts.</p>
-          </div>
-        </div>
-
-        <div className="container">
-          {/* Stats Cards */}
-          <div className={styles.statsGrid}>
-            <div className={styles.statCard}>
-              <div className={styles.statValue}>{activeBookings.length}</div>
-              <div className={styles.statLabel}>Active</div>
+            {/* Stats Cards */}
+            <div className={styles.statsGrid}>
+              <div className={styles.statCard}>
+                <div className={styles.statValue}>{activeBookings.length}</div>
+                <div className={styles.statLabel}>Active</div>
+              </div>
+              <div className={styles.statCard}>
+                <div className={styles.statValue}>{completedBookings.length}</div>
+                <div className={styles.statLabel}>Completed</div>
+              </div>
+              <div className={styles.statCard}>
+                <div className={styles.statValue}>{cancelledBookings.length}</div>
+                <div className={styles.statLabel}>Cancelled</div>
+              </div>
             </div>
-            <div className={styles.statCard}>
-              <div className={styles.statValue}>{completedBookings.length}</div>
-              <div className={styles.statLabel}>Completed</div>
-            </div>
-            <div className={styles.statCard}>
-              <div className={styles.statValue}>{cancelledBookings.length}</div>
-              <div className={styles.statLabel}>Cancelled</div>
-            </div>
-          </div>
 
-          {/* Filter Tabs */}
-          <div className={styles.filterTabs}>
-            {['all', 'pending', 'confirmed', 'completed', 'cancelled'].map((tab) => (
-              <button
-                key={tab}
-                className={`${styles.filterTab} ${filter === tab ? styles.active : ''}`}
-                onClick={() => setFilter(tab)}
-              >
-                {tab === 'all' ? 'All Bookings' : STATUS_LABELS[tab]}
-              </button>
-            ))}
-          </div>
-
-          {/* Loading State */}
-          {loading && <Spinner />}
-
-          {/* Error State */}
-          {error && !loading && (
-            <div className={styles.errorBox}>
-              <p>{error}</p>
-              <button onClick={fetchBookings} className={styles.retryBtn}>
-                Retry
-              </button>
-            </div>
-          )}
-
-          {/* Empty State */}
-          {!loading && !error && filteredBookings.length === 0 && (
-            <div className={styles.emptyState}>
-              <div className={styles.emptyIcon}>📅</div>
-              <h3>No bookings found</h3>
-              <p>
-                {filter === 'all'
-                  ? "You don't have any bookings yet. Browse experts to book a consultation."
-                  : `You don't have any ${filter} bookings.`}
-              </p>
-            </div>
-          )}
-
-          {/* Bookings List */}
-          {!loading && !error && filteredBookings.length > 0 && (
-            <div className={styles.bookingsList}>
-              {filteredBookings.map((booking) => (
-                <div key={booking._id} className={styles.bookingCard}>
-                  <div className={styles.cardHeader}>
-                    <div className={styles.expertInfo}>
-                      <h3 className={styles.expertName}>{booking.expertId?.name || 'Expert'}</h3>
-                      <p className={styles.expertSpecialization}>
-                        {booking.expertId?.specializations?.join(', ') || 'Legal Expert'}
-                      </p>
-                    </div>
-                    <div
-                      className={styles.statusBadge}
-                      style={{ backgroundColor: STATUS_COLORS[booking.status] }}
-                    >
-                      {STATUS_LABELS[booking.status]}
-                    </div>
-                  </div>
-
-                  <div className={styles.cardBody}>
-                    <div className={styles.bookingDetail}>
-                      <span className={styles.label}>📅 Date</span>
-                      <span className={styles.value}>
-                        {new Date(booking.slotDate).toLocaleDateString('en-US', {
-                          weekday: 'short',
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </span>
-                    </div>
-
-                    <div className={styles.bookingDetail}>
-                      <span className={styles.label}>⏰ Time</span>
-                      <span className={styles.value}>{booking.slotTime}</span>
-                    </div>
-
-                    <div className={styles.bookingDetail}>
-                      <span className={styles.label}>💰 Fee</span>
-                      <span className={styles.value}>₹{booking.consultationFee}</span>
-                    </div>
-
-                    {booking.notes && (
-                      <div className={styles.bookingDetail}>
-                        <span className={styles.label}>📝 Notes</span>
-                        <span className={styles.value}>{booking.notes}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className={styles.cardFooter}>
-                    {booking.status === 'pending' && (
-                      <button
-                        className={styles.cancelBtn}
-                        onClick={() => handleCancelBooking(booking._id)}
-                        disabled={cancellingId === booking._id}
-                      >
-                        {cancellingId === booking._id ? 'Cancelling...' : 'Cancel Booking'}
-                      </button>
-                    )}
-                    {booking.status === 'confirmed' && (
-                      <button
-                        className={styles.cancelBtn}
-                        onClick={() => handleCancelBooking(booking._id)}
-                        disabled={cancellingId === booking._id}
-                      >
-                        {cancellingId === booking._id ? 'Cancelling...' : 'Cancel Booking'}
-                      </button>
-                    )}
-                    {booking.status === 'completed' && (
-                      <button className={styles.completeBtn} disabled>
-                        ✓ Completed
-                      </button>
-                    )}
-                    {booking.status === 'cancelled' && (
-                      <button className={styles.cancelledBtn} disabled>
-                        ✗ Cancelled
-                      </button>
-                    )}
-                  </div>
-                </div>
+            {/* Filter Tabs */}
+            <div className={styles.filterTabs}>
+              {['all', 'pending', 'confirmed', 'completed', 'cancelled'].map((tab) => (
+                <button
+                  key={tab}
+                  className={`${styles.filterTab} ${filter === tab ? styles.active : ''}`}
+                  onClick={() => setFilter(tab)}
+                >
+                  {tab === 'all' ? 'All Bookings' : STATUS_LABELS[tab]}
+                </button>
               ))}
             </div>
-          )}
-        </div>
-      </main>
-    </div>
+
+            {/* Loading State */}
+            {loading && <BookingsPageSkeleton cardCount={3} statsCount={3} />}
+
+            {/* Error State */}
+            {error && !loading && (
+              <div className={styles.errorBox}>
+                <p>{error}</p>
+                <button onClick={fetchBookings} className={styles.retryBtn}>
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!loading && !error && filteredBookings.length === 0 && (
+              <div className={styles.emptyState}>
+                <div className={styles.emptyIcon}>📅</div>
+                <h3>No bookings found</h3>
+                <p>
+                  {filter === 'all'
+                    ? "You don't have any bookings yet. Browse experts to book a consultation."
+                    : `You don't have any ${filter} bookings.`}
+                </p>
+              </div>
+            )}
+
+            {/* Bookings List */}
+            {!loading && !error && filteredBookings.length > 0 && (
+              <div className={styles.bookingsList}>
+                {filteredBookings.map((booking) => (
+                  <div key={booking._id} className={styles.bookingCard}>
+                    <div className={styles.cardHeader}>
+                      <div className={styles.expertInfo}>
+                        <h3 className={styles.expertName}>{booking.expertId?.userId?.name || 'Expert'}</h3>
+                        <p className={styles.expertSpecialization}>
+                          {booking.expertId?.specialization?.join(', ') || 'Legal Expert'}
+                        </p>
+                      </div>
+                      <div
+                        className={styles.statusBadge}
+                        style={{ backgroundColor: STATUS_COLORS[booking.status] }}
+                      >
+                        {STATUS_LABELS[booking.status]}
+                      </div>
+                    </div>
+
+                    <div className={styles.cardBody}>
+                      <div className={styles.bookingDetail}>
+                        <span className={styles.label}>📅 Date</span>
+                        <span className={styles.value}>
+                          {booking.date ? new Date(booking.date).toLocaleDateString('en-US', {
+                            weekday: 'short',
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                          }) : 'N/A'}
+                        </span>
+                      </div>
+
+                      <div className={styles.bookingDetail}>
+                        <span className={styles.label}>⏰ Time</span>
+                        <span className={styles.value}>
+                          {booking.slot?.start ? `${booking.slot.start} - ${booking.slot.end}` : 'N/A'}
+                        </span>
+                      </div>
+
+                      <div className={styles.bookingDetail}>
+                        <span className={styles.label}>💰 Fee</span>
+                        <span className={styles.value}>₹{booking.consultationFeeAtBooking || 'N/A'}</span>
+                      </div>
+
+                      {booking.notes && (
+                        <div className={styles.bookingDetail}>
+                          <span className={styles.label}>📝 Notes</span>
+                          <span className={styles.value}>{booking.notes}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className={styles.cardFooter}>
+                      {(booking.status === 'pending' || booking.status === 'confirmed') && (
+                        <button
+                          className={styles.cancelBtn}
+                          onClick={() => handleCancelClick(booking._id)}
+                          disabled={cancellingId === booking._id}
+                        >
+                          {cancellingId === booking._id ? 'Cancelling...' : 'Cancel Booking'}
+                        </button>
+                      )}
+                      {booking.status === 'completed' && (
+                        <button className={styles.completeBtn} disabled>
+                          ✓ Completed
+                        </button>
+                      )}
+                      {booking.status === 'cancelled' && (
+                        <button className={styles.cancelledBtn} disabled>
+                          ✗ Cancelled
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+    </ErrorBoundary>
   )
 }
