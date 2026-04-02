@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
-import Spinner from '../components/Spinner'
+import { DashboardSkeleton } from '../components/LoadingSkeleton'
 import { getUser } from '../services/auth.service'
 import { getMyBookings } from '../services/booking.service'
 import styles from './Dashboard.module.css'
@@ -89,9 +89,7 @@ export default function Dashboard() {
                 <Link to="/experts" className={styles.sectionLink}>+ New Booking</Link>
               </div>
 
-              {loading && (
-                <div className={styles.center}><Spinner /></div>
-              )}
+              {loading && <DashboardSkeleton />}
 
               {error && (
                 <div className={styles.errorBox}>{error}</div>
