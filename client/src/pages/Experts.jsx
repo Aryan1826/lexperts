@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Navbar from '../components/Navbar'
 import ExpertCard from '../components/ExpertCard'
-import Spinner from '../components/Spinner'
+import { ExpertGridSkeleton } from '../components/LoadingSkeleton'
 import { getAllExperts } from '../services/expert.service'
 import styles from './Experts.module.css'
 
@@ -173,7 +173,7 @@ export default function Experts() {
             )}
 
             {loading ? (
-              <div className={styles.center}><Spinner size="lg" /></div>
+              <ExpertGridSkeleton count={3} />
             ) : !error && experts.length === 0 ? (
               <div className={styles.empty}>
                 <p className={styles.emptyTitle}>No experts found</p>

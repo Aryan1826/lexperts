@@ -21,10 +21,14 @@
   --shadow-md: 0 4px 16px rgba(15,14,12,0.10);
   --shadow-lg: 0 12px 40px rgba(15,14,12,0.13);
   --radius: 4px;
+  --radius-md: 8px;
   --radius-lg: 10px;
   --font-serif: 'DM Serif Display', Georgia, serif;
   --font-sans: 'DM Sans', system-ui, sans-serif;
   --transition: 0.2s ease;
+  /* Aliases used across pages */
+  --primary: var(--gold);
+  --primary-dark: #9a7820;
 }
 
 html { font-size: 16px; scroll-behavior: smooth; }
@@ -50,3 +54,8 @@ img { display: block; max-width: 100%; }
 /* Utility */
 .container { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+/* Mobile container tightening */
+@media (max-width: 480px) {
+  .container { padding: 0 16px; }
+}

@@ -121,4 +121,62 @@ export function ProfileFormSkeleton() {
   )
 }
 
+// Skeleton for the Dashboard recent bookings list
+export function DashboardSkeleton() {
+  return (
+    <div className={styles.dashboardSkeleton}>
+      {/* Stats row */}
+      <div className={styles.dashStatsRow}>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className={styles.dashStatCard}>
+            <SkeletonLine width="50px" height="36px" />
+            <div style={{ marginTop: '8px' }}>
+              <SkeletonLine width="70px" height="13px" />
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Booking rows */}
+      <div className={styles.dashRows}>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className={styles.dashRow}>
+            <SkeletonLine width="36px" height="36px" style={{ borderRadius: '50%', flexShrink: 0 }} />
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <SkeletonLine width="140px" height="15px" />
+              <SkeletonLine width="100px" height="12px" />
+            </div>
+            <SkeletonLine width="80px" height="13px" />
+            <SkeletonLine width="60px" height="24px" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Skeleton for the Experts grid (3 card placeholders)
+export function ExpertGridSkeleton({ count = 3 }) {
+  return (
+    <div className={styles.expertGridSkeleton}>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className={styles.expertCardSkeleton}>
+          <div className={styles.expertCardMain}>
+            <SkeletonLine width="52px" height="52px" style={{ borderRadius: '50%', flexShrink: 0 }} />
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <SkeletonLine width="160px" height="20px" />
+              <SkeletonLine width="120px" height="13px" />
+              <SkeletonLine width="100%" height="13px" />
+              <SkeletonLine width="80%" height="13px" />
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                <SkeletonLine width="130px" height="13px" />
+                <SkeletonLine width="80px" height="32px" />
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default BookingCardSkeleton
