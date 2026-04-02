@@ -1,19 +1,23 @@
 # LExperts Development Progress Report
-**Date:** April 2, 2026 | **Day:** 11 of 20 | **Status:** 🟢 ON SCHEDULE
+**Date:** April 2, 2026 | **Day:** 15 of 20 | **Status:** 🟢 ON SCHEDULE
 **Deadline:** April 20, 2026
 
 ---
 
 ## Executive Summary
 
-✅ **55% of project complete.** All core frontend and backend functionality is built, tested, and working end-to-end. The system supports full client-expert booking workflows, secure authentication, mobile-responsive UI, and production-grade error handling.
+✅ **75% of project complete.** All core frontend and backend functionality is built, tested, and working end-to-end. Email notifications, availability slot picker, auto-refresh polling, and dashboard improvements are now live.
 
-### Key Achievements (Days 1–11)
+### Key Achievements (Days 1–15)
 - ✅ Production-grade backend with atomic bookings, JWT auth, security hardening
 - ✅ Complete React frontend — 8 pages, role-based routing, responsive on all screen sizes
 - ✅ Skeleton loading states, React Error Boundaries, toast notifications on every page
 - ✅ End-to-end booking flow: client books → expert confirms/declines → client sees update
 - ✅ Hamburger nav for mobile, custom ConfirmModal replacing browser dialogs
+- ✅ Email notifications: booking created → expert, confirmed → client, cancelled → other party
+- ✅ Expert availability slot picker: set weekly schedule with multiple time slots per day
+- ✅ Auto-refresh polling: My Bookings and Expert Dashboard poll every 30s silently
+- ✅ Dashboard stats accuracy fix: confirmed/pending counts now fetched from backend
 - ✅ Zero critical bugs, zero race conditions, zero unused console.logs
 
 ---
@@ -164,12 +168,39 @@ All logging goes through Winston (`src/utils/logger.js`). The only `console.log`
 
 ---
 
-## Remaining Work (Days 12–20)
+## Phase 6 Summary — Backend Enhancements (Days 12–15) ✅
 
-### Days 12–15: Backend Enhancements
-- Email notifications (booking confirmed/cancelled) via Nodemailer
-- Expert availability slot picker in profile form
-- Optional: real-time booking updates (polling or Socket.io)
+### Day 12: Email Notifications via Nodemailer
+- Installed `nodemailer`, configured Ethereal (dev) / SMTP (prod) via `EMAIL_*` env vars
+- Created `src/utils/emailService.js` with 3 branded HTML email templates (inline CSS)
+- Three trigger points in `booking.service.js`:
+  - **Booking created** → email sent to expert (fire-and-forget, never blocks API)
+  - **Booking confirmed** → email sent to client
+  - **Booking cancelled** → email sent to the other party (client or expert)
+- Preview URL logged to backend console in development (Ethereal)
+
+### Day 13: Expert Availability Slot Picker
+- Added `availability` state to `ExpertProfile.jsx`
+- Days of week checkboxes (Mon–Sun); checking a day auto-adds a default 09:00–17:00 slot
+- Each checked day supports multiple time slots with `+ Add Slot` button
+- Slot validation: start must be before end; no empty slots on checked days
+- Availability is `availability: []` by default → backend skips validation → all times permitted
+- Once set, only slots within expert's configured hours can be booked
+
+### Day 14: Auto-Refresh Polling
+- `My Bookings` and `Expert Dashboard` now poll every 30 seconds using `setInterval`
+- Silent refresh: no skeleton shown on background polls — only initial load shows skeleton
+- Uses `useCallback` to avoid stale closures; interval cleaned up on unmount
+- "Updated just now / Xs ago / Xm ago" label shown below filter tabs
+
+### Day 15: Final Polish
+- Dashboard stats (`Confirmed`, `Pending`) now fetch accurate counts from backend using
+  `Promise.all` with status-filtered API calls instead of counting from only 5 loaded bookings
+- Dashboard date column now shows formatted dates (e.g. "Apr 2, 2026") instead of raw ISO string
+- Expert section on Dashboard now shows quick-action buttons: "View My Bookings" + "Edit Profile"
+- `ctaBtnOutline` variant added to Dashboard CSS for secondary actions
+
+## Remaining Work (Days 16–20)
 
 ### Days 16–20: AWS Deployment
 - EC2 instance + PM2 + Nginx + SSL

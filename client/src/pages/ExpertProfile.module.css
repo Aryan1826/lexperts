@@ -250,6 +250,134 @@
   line-height: 1.5;
 }
 
+/* ─── Availability Slot Picker ──────────────────────────────────────────── */
+
+.availabilityGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dayRow {
+  border: 1.5px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  transition: all var(--transition);
+  background: #fafafa;
+}
+
+.dayRowActive {
+  border-color: var(--gold);
+  background: rgba(184, 146, 42, 0.03);
+}
+
+.dayHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dayToggle {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  gap: 10px;
+}
+
+.dayName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  min-width: 96px;
+}
+
+.addSlotBtn {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gold);
+  background: none;
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: var(--font-sans);
+}
+
+.addSlotBtn:hover {
+  background: var(--gold);
+  color: white;
+}
+
+.slotsWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #ede9e0;
+}
+
+.slotRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.timeInput {
+  padding: 8px 10px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 6px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--ink);
+  background: white;
+  transition: all var(--transition);
+  cursor: pointer;
+}
+
+.timeInput:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(184, 146, 42, 0.1);
+}
+
+.slotSep {
+  color: var(--ink-muted);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.removeSlotBtn {
+  background: none;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 11px;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: var(--font-sans);
+  line-height: 1;
+}
+
+.removeSlotBtn:hover {
+  background: #fef2f2;
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+@media (max-width: 640px) {
+  .slotRow {
+    flex-wrap: wrap;
+  }
+
+  .timeInput {
+    flex: 1;
+    min-width: 120px;
+  }
+}
+
 @media (max-width: 768px) {
   .pageHead {
     padding: 24px 0;
