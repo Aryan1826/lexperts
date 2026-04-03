@@ -134,6 +134,52 @@ const templates = {
       <p style="font-size:14px;color:#8a8780;">Please be available at the scheduled time. You can view all your bookings from My Bookings.</p>
     `),
 
+  // Sent to new user on registration
+  welcome: ({ name, role }) =>
+    baseTemplate(`
+      <p class="title">Welcome to LExperts! 🎉</p>
+      <p class="subtitle">Hi <strong>${name}</strong>, your account has been created successfully. You're now part of India's trusted legal consultation platform.</p>
+      <div class="detail-box">
+        <div class="detail-row">
+          <span class="detail-label">Account Name</span>
+          <span class="detail-value">${name}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Account Type</span>
+          <span class="detail-value" style="text-transform:capitalize;">${role}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Status</span>
+          <span class="detail-value"><span class="badge badge-confirmed">Active</span></span>
+        </div>
+      </div>
+      ${role === 'expert'
+        ? `<p style="font-size:14px;color:#8a8780;">Complete your expert profile to start accepting bookings from clients.</p>`
+        : `<p style="font-size:14px;color:#8a8780;">Browse our verified experts and book your first consultation at any time.</p>`
+      }
+    `),
+
+  // Sent when user requests a password reset
+  passwordReset: ({ name, resetUrl, expiresInMinutes }) =>
+    baseTemplate(`
+      <p class="title">Reset Your Password 🔐</p>
+      <p class="subtitle">Hi <strong>${name}</strong>, we received a request to reset your password. Click the button below to set a new one.</p>
+      <div style="text-align:center;margin:28px 0;">
+        <a href="${resetUrl}" class="btn" style="display:inline-block;">Reset My Password</a>
+      </div>
+      <div class="detail-box">
+        <div class="detail-row">
+          <span class="detail-label">Link expires in</span>
+          <span class="detail-value">${expiresInMinutes} minutes</span>
+        </div>
+      </div>
+      <p style="font-size:13px;color:#8a8780;margin-top:16px;">
+        If you didn't request a password reset, you can safely ignore this email — your password will not change.<br/><br/>
+        If the button above doesn't work, copy and paste this URL into your browser:<br/>
+        <span style="color:#b8922a;word-break:break-all;">${resetUrl}</span>
+      </p>
+    `),
+
   // Sent to the other party when booking is cancelled
   bookingCancelled: ({ recipientName, otherPartyName, otherPartyRole, date, slotStart, slotEnd, reason }) =>
     baseTemplate(`
@@ -260,8 +306,29 @@ const sendBookingCancelledEmail = async (booking, recipientEmail, recipientName,
   });
 };
 
+const sendWelcomeEmail = async (user) => {
+  return sendEmail({
+    to: user.email,
+    subject: `Welcome to LExperts, ${user.name}! 🎉`,
+    html: templates.welcome({ name: user.name, role: user.role }),
+  });
+};
+
+const sendPasswordResetEmail = async (user, resetToken) => {
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  const resetUrl = `${clientUrl}/reset-password?token=${resetToken}`;
+
+  return sendEmail({
+    to: user.email,
+    subject: 'Reset Your LExperts Password',
+    html: templates.passwordReset({ name: user.name, resetUrl, expiresInMinutes: 10 }),
+  });
+};
+
 module.exports = {
   sendBookingCreatedEmail,
   sendBookingConfirmedEmail,
   sendBookingCancelledEmail,
+  sendWelcomeEmail,
+  sendPasswordResetEmail,
 };
