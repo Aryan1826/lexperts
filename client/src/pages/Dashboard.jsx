@@ -5,47 +5,63 @@ import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import { DashboardSkeleton } from '../components/LoadingSkeleton'
 import { getUser } from '../services/auth.service'
-import { getMyBookings } from '../services/booking.service'
+import { getMyBookings, getExpertBookings } from '../services/booking.service'
 import styles from './Dashboard.module.css'
 
 const STATUS_LABEL = {
-  pending: { label: 'Pending', cls: 'statusPending' },
+  pending:   { label: 'Pending',   cls: 'statusPending' },
   confirmed: { label: 'Confirmed', cls: 'statusConfirmed' },
   cancelled: { label: 'Cancelled', cls: 'statusCancelled' },
 }
 
 export default function Dashboard() {
   const user = getUser()
+  const isExpert = user?.role === 'expert'
+
   const [bookings, setBookings] = useState([])
   const [stats, setStats] = useState({ total: null, confirmed: null, pending: null })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    const fetchBookings = async () => {
+    const fetchData = async () => {
       setLoading(true)
       try {
-        // Fetch recent bookings + accurate status counts in parallel
-        const [recent, confirmedRes, pendingRes] = await Promise.all([
-          getMyBookings({ limit: 5 }),
-          getMyBookings({ limit: 1, status: 'confirmed' }),
-          getMyBookings({ limit: 1, status: 'pending' }),
-        ])
-        setBookings(recent.bookings)
-        setStats({
-          total: recent.pagination.total,
-          confirmed: confirmedRes.pagination.total,
-          pending: pendingRes.pagination.total,
-        })
+        if (isExpert) {
+          // Expert: fetch their incoming client bookings + counts
+          const [recent, confirmedRes, pendingRes] = await Promise.all([
+            getExpertBookings({ limit: 5 }),
+            getExpertBookings({ limit: 1, status: 'confirmed' }),
+            getExpertBookings({ limit: 1, status: 'pending' }),
+          ])
+          setBookings(recent.bookings)
+          setStats({
+            total:     recent.pagination.total,
+            confirmed: confirmedRes.pagination.total,
+            pending:   pendingRes.pagination.total,
+          })
+        } else {
+          // Client: fetch their own bookings + counts
+          const [recent, confirmedRes, pendingRes] = await Promise.all([
+            getMyBookings({ limit: 5 }),
+            getMyBookings({ limit: 1, status: 'confirmed' }),
+            getMyBookings({ limit: 1, status: 'pending' }),
+          ])
+          setBookings(recent.bookings)
+          setStats({
+            total:     recent.pagination.total,
+            confirmed: confirmedRes.pagination.total,
+            pending:   pendingRes.pagination.total,
+          })
+        }
       } catch (err) {
-        setError(err.response?.data?.message || 'Failed to load bookings.')
+        setError(err.response?.data?.message || 'Failed to load dashboard.')
       } finally {
         setLoading(false)
       }
     }
 
-    if (user?.role === 'client') fetchBookings()
-    else setLoading(false)
+    fetchData()
   }, [])
 
   const hour = new Date().getHours()
@@ -68,21 +84,23 @@ export default function Dashboard() {
               </p>
             </div>
             <div className={styles.heroCta}>
-              <Link to="/experts" className={styles.ctaBtn}>Browse Experts</Link>
+              {isExpert
+                ? <Link to="/expert-dashboard" className={styles.ctaBtn}>View Bookings</Link>
+                : <Link to="/experts" className={styles.ctaBtn}>Browse Experts</Link>}
             </div>
           </section>
 
           <div className={styles.statsRow}>
             <div className={styles.statCard}>
-              <span className={styles.statValue}>{stats.total ?? '—'}</span>
-              <span className={styles.statLabel}>Total Bookings</span>
+              <span className={styles.statValue}>{loading ? '…' : (stats.total ?? 0)}</span>
+              <span className={styles.statLabel}>{isExpert ? 'Total Clients' : 'Total Bookings'}</span>
             </div>
             <div className={styles.statCard}>
-              <span className={styles.statValue}>{stats.confirmed ?? '—'}</span>
+              <span className={styles.statValue}>{loading ? '…' : (stats.confirmed ?? 0)}</span>
               <span className={styles.statLabel}>Confirmed</span>
             </div>
             <div className={styles.statCard}>
-              <span className={styles.statValue}>{stats.pending ?? '—'}</span>
+              <span className={styles.statValue}>{loading ? '…' : (stats.pending ?? 0)}</span>
               <span className={styles.statLabel}>Pending</span>
             </div>
           </div>
@@ -144,17 +162,60 @@ export default function Dashboard() {
             </section>
           )}
 
-          {user?.role === 'expert' && (
+          {isExpert && (
             <section className={styles.section}>
               <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>Expert Quick Actions</h2>
+                <h2 className={styles.sectionTitle}>Recent Client Bookings</h2>
+                <Link to="/expert-dashboard" className={styles.sectionLink}>View all →</Link>
               </div>
-              <div className={styles.expertNote}>
-                <p>Manage your profile and view incoming bookings from clients.</p>
-                <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
-                  <Link to="/expert-dashboard" className={styles.ctaBtn}>View My Bookings</Link>
-                  <Link to="/expert-profile" className={styles.ctaBtnOutline}>Edit Profile</Link>
+
+              {loading && <DashboardSkeleton />}
+
+              {error && <div className={styles.errorBox}>{error}</div>}
+
+              {!loading && !error && bookings.length === 0 && (
+                <div className={styles.empty}>
+                  <p className={styles.emptyTitle}>No bookings yet</p>
+                  <p className={styles.emptySub}>Complete your profile so clients can find and book you.</p>
+                  <Link to="/expert-profile" className={styles.ctaBtn} style={{ marginTop: '16px', display: 'inline-block' }}>
+                    Complete Profile
+                  </Link>
                 </div>
+              )}
+
+              {!loading && !error && bookings.length > 0 && (
+                <div className={styles.bookingList}>
+                  {bookings.map((b) => {
+                    const st = STATUS_LABEL[b.status] || STATUS_LABEL.pending
+                    const clientUser = b.clientId
+                    return (
+                      <div key={b._id} className={styles.bookingRow}>
+                        <div className={styles.bookingLeft}>
+                          <div className={styles.bookingAvatar}>
+                            {clientUser?.name?.[0]?.toUpperCase() || 'C'}
+                          </div>
+                          <div>
+                            <p className={styles.bookingName}>{clientUser?.name || 'Client'}</p>
+                            <p className={styles.bookingSpec}>{clientUser?.email || ''}</p>
+                          </div>
+                        </div>
+                        <div className={styles.bookingMeta}>
+                          <span className={styles.bookingDate}>
+                            {b.date ? new Date(b.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                          </span>
+                          <span className={styles.bookingSlot}>{b.slot?.start} – {b.slot?.end}</span>
+                        </div>
+                        <span className={`${styles.status} ${styles[st.cls]}`}>{st.label}</span>
+                        <span className={styles.bookingFee}>₹{b.consultationFeeAtBooking}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '24px', flexWrap: 'wrap' }}>
+                <Link to="/expert-dashboard" className={styles.ctaBtn}>Manage Bookings</Link>
+                <Link to="/expert-profile" className={styles.ctaBtnOutline}>Edit Profile</Link>
               </div>
             </section>
           )}
