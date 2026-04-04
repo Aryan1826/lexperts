@@ -46,6 +46,12 @@ const validateCreateBooking = [
     .trim()
     .isLength({ max: 1000 })
     .withMessage('Notes cannot exceed 1000 characters'),
+  body('caseDescription')
+    .optional()
+    .isString()
+    .trim()
+    .isLength({ max: 2000 })
+    .withMessage('Case description cannot exceed 2000 characters'),
   handleValidation,
 ];
 

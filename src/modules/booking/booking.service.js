@@ -3,8 +3,14 @@
 const mongoose = require('mongoose');
 const Booking = require('./booking.model');
 const Expert = require('../expert/expert.model');
+const User = require('../user/user.model');
 const AppError = require('../../utils/AppError');
 const logger = require('../../utils/logger');
+const {
+  sendBookingCreatedEmail,
+  sendBookingConfirmedEmail,
+  sendBookingCancelledEmail,
+} = require('../../utils/emailService');
 
 // ─── VALID_DAYS for expert availability ────────────────────────────────────
 const VALID_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -81,7 +87,7 @@ const validateSlotAgainstAvailability = (expert, date, slot) => {
  * 3. Duplicate slot attempts fail at the unique index level as final defense
  */
 const createBooking = async (clientId, bookingData) => {
-  const { expertId, date, slot, notes } = bookingData;
+  const { expertId, date, slot, notes, caseDescription, documents } = bookingData;
 
   // ─── PRE-TRANSACTION VALIDATION ───────────────────────────────────────
   // These checks don't require atomicity and can fail fast
@@ -143,6 +149,8 @@ const createBooking = async (clientId, bookingData) => {
           date,
           slot,
           notes: notes || '',
+          caseDescription: caseDescription || '',
+          documents: documents || [],
           consultationFeeAtBooking: expert.consultationFee,
         },
       ],
@@ -160,6 +168,14 @@ const createBooking = async (clientId, bookingData) => {
         select: 'specialization consultationFee userId',
         populate: { path: 'userId', select: 'name email' },
       });
+
+    // Send email to expert — fire and forget (never blocks the response)
+    sendBookingCreatedEmail(
+      populatedBooking,
+      populatedBooking.expertId?.userId?.email,
+      populatedBooking.clientId?.name,
+      populatedBooking.expertId?.userId?.name
+    ).catch(() => {});
 
     return populatedBooking;
   } catch (error) {
@@ -305,7 +321,6 @@ const confirmBooking = async (bookingId, userId) => {
     .populate('expertId');
 
   if (!booking) {
-    // Either booking doesn't exist, doesn't belong to this expert, or is not pending
     const existingBooking = await Booking.findById(bookingId);
     if (!existingBooking) throw new AppError('Booking not found', 404);
     if (existingBooking.expertId.toString() !== expert._id.toString()) {
@@ -313,6 +328,15 @@ const confirmBooking = async (bookingId, userId) => {
     }
     throw new AppError(`Cannot confirm a booking with status: ${existingBooking.status}`, 400);
   }
+
+  // Send confirmation email to client — fire and forget
+  const expertUser = await User.findById(userId).select('name').lean();
+  sendBookingConfirmedEmail(
+    booking,
+    booking.clientId?.email,
+    booking.clientId?.name,
+    expertUser?.name || 'Your Expert'
+  ).catch(() => {});
 
   return booking;
 };
@@ -359,6 +383,34 @@ const cancelBooking = async (bookingId, userId, userRole, reason) => {
   )
     .populate('clientId', 'name email')
     .populate('expertId');
+
+  // Send cancellation email to the other party — fire and forget
+  if (updatedBooking) {
+    const expertUser = await User.findById(expert?.userId).select('name email').lean();
+    const cancellerIsClient = isClient;
+
+    if (cancellerIsClient) {
+      // Client cancelled → notify expert
+      sendBookingCancelledEmail(
+        updatedBooking,
+        expertUser?.email,
+        expertUser?.name || 'Expert',
+        updatedBooking.clientId?.name || 'Client',
+        'client',
+        reason
+      ).catch(() => {});
+    } else {
+      // Expert (or admin) cancelled → notify client
+      sendBookingCancelledEmail(
+        updatedBooking,
+        updatedBooking.clientId?.email,
+        updatedBooking.clientId?.name || 'Client',
+        expertUser?.name || 'Expert',
+        'expert',
+        reason
+      ).catch(() => {});
+    }
+  }
 
   return updatedBooking;
 };

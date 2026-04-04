@@ -103,4 +103,25 @@ const getMe = catchAsync(async (req, res) => {
   });
 });
 
-module.exports = { register, login, refresh, logout, getMe };
+const forgotPassword = catchAsync(async (req, res) => {
+  await authService.forgotPassword({ email: req.body.email });
+
+  // Always return 200 — don't reveal whether the email exists
+  res.status(200).json({
+    success: true,
+    message: 'If that email is registered, a reset link has been sent.',
+  });
+});
+
+const resetPassword = catchAsync(async (req, res) => {
+  const { token, password } = req.body;
+  const result = await authService.resetPassword({ token, password });
+
+  res.status(200).json({
+    success: true,
+    message: 'Password reset successful. You can now log in with your new password.',
+    data: { user: result.user },
+  });
+});
+
+module.exports = { register, login, refresh, logout, getMe, forgotPassword, resetPassword };

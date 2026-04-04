@@ -8,6 +8,8 @@ import { ProfileFormSkeleton } from '../components/LoadingSkeleton'
 import { createProfile, getMyProfile, updateProfile } from '../services/expert.service'
 import styles from './ExpertProfile.module.css'
 
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
 const LEGAL_SPECIALIZATIONS = [
   'Civil Law',
   'Criminal Law',
@@ -28,6 +30,7 @@ export default function ExpertProfile() {
     consultationFee: '',
     bio: '',
   })
+  const [availability, setAvailability] = useState([])
   const [loading, setLoading] = useState(false)
   const [fetchingProfile, setFetchingProfile] = useState(true)
   const [error, setError] = useState('')
@@ -50,6 +53,7 @@ export default function ExpertProfile() {
           consultationFee: data.consultationFee.toString() || '',
           bio: data.bio || '',
         })
+        setAvailability(data.availability || [])
         setIsEditing(true)
       }
     } catch {
@@ -67,6 +71,44 @@ export default function ExpertProfile() {
         ? prev.specialization.filter((s) => s !== spec)
         : [...prev.specialization, spec],
     }))
+  }
+
+  // ─── Availability handlers ────────────────────────────────────────────────
+  const toggleDay = (day) => {
+    setAvailability((prev) => {
+      const exists = prev.find((a) => a.day === day)
+      if (exists) return prev.filter((a) => a.day !== day)
+      return [...prev, { day, slots: [{ start: '09:00', end: '17:00' }] }]
+    })
+  }
+
+  const updateSlot = (day, slotIdx, field, value) => {
+    setAvailability((prev) =>
+      prev.map((a) => {
+        if (a.day !== day) return a
+        const newSlots = a.slots.map((s, i) => (i === slotIdx ? { ...s, [field]: value } : s))
+        return { ...a, slots: newSlots }
+      })
+    )
+  }
+
+  const addSlot = (day) => {
+    setAvailability((prev) =>
+      prev.map((a) => {
+        if (a.day !== day) return a
+        return { ...a, slots: [...a.slots, { start: '09:00', end: '17:00' }] }
+      })
+    )
+  }
+
+  const removeSlot = (day, slotIdx) => {
+    setAvailability((prev) =>
+      prev.map((a) => {
+        if (a.day !== day) return a
+        const newSlots = a.slots.filter((_, i) => i !== slotIdx)
+        return { ...a, slots: newSlots }
+      })
+    )
   }
 
   const handleChange = (e) => {
@@ -96,6 +138,24 @@ export default function ExpertProfile() {
       return
     }
 
+    // Validate availability slots
+    for (const avail of availability) {
+      for (const slot of avail.slots) {
+        if (!slot.start || !slot.end) {
+          setError(`Please fill in all time slots for ${avail.day}`)
+          return
+        }
+        if (slot.start >= slot.end) {
+          setError(`On ${avail.day}: start time must be before end time`)
+          return
+        }
+      }
+      if (avail.slots.length === 0) {
+        setError(`${avail.day} is checked but has no time slots. Add at least one slot or uncheck the day.`)
+        return
+      }
+    }
+
     setLoading(true)
     try {
       const data = {
@@ -103,6 +163,7 @@ export default function ExpertProfile() {
         experience: parseInt(form.experience),
         consultationFee: parseFloat(form.consultationFee),
         bio: form.bio.trim(),
+        availability,
       }
 
       if (isEditing && profileId) {
@@ -243,6 +304,76 @@ export default function ExpertProfile() {
                     {form.bio.length}/1000 characters (minimum 20 required)
                   </small>
                 </div>
+
+                {/* Availability */}
+                <fieldset className={styles.section}>
+                  <legend className={styles.sectionLabel}>Weekly Availability</legend>
+                  <p className={styles.sectionInfo}>
+                    Select the days you're available and set time slots for each day.
+                    Leave unchecked to allow bookings at any time.
+                  </p>
+                  <div className={styles.availabilityGrid}>
+                    {DAYS.map((day) => {
+                      const dayEntry = availability.find((a) => a.day === day)
+                      const isActive = !!dayEntry
+                      return (
+                        <div key={day} className={`${styles.dayRow} ${isActive ? styles.dayRowActive : ''}`}>
+                          <div className={styles.dayHeader}>
+                            <label className={styles.dayToggle}>
+                              <input
+                                type="checkbox"
+                                checked={isActive}
+                                onChange={() => toggleDay(day)}
+                                className={styles.checkbox}
+                              />
+                              <span className={styles.dayName}>{day}</span>
+                            </label>
+                            {isActive && (
+                              <button
+                                type="button"
+                                className={styles.addSlotBtn}
+                                onClick={() => addSlot(day)}
+                              >
+                                + Add Slot
+                              </button>
+                            )}
+                          </div>
+                          {isActive && (
+                            <div className={styles.slotsWrapper}>
+                              {dayEntry.slots.map((slot, idx) => (
+                                <div key={idx} className={styles.slotRow}>
+                                  <input
+                                    type="time"
+                                    value={slot.start}
+                                    onChange={(e) => updateSlot(day, idx, 'start', e.target.value)}
+                                    className={styles.timeInput}
+                                  />
+                                  <span className={styles.slotSep}>–</span>
+                                  <input
+                                    type="time"
+                                    value={slot.end}
+                                    onChange={(e) => updateSlot(day, idx, 'end', e.target.value)}
+                                    className={styles.timeInput}
+                                  />
+                                  {dayEntry.slots.length > 1 && (
+                                    <button
+                                      type="button"
+                                      className={styles.removeSlotBtn}
+                                      onClick={() => removeSlot(day, idx)}
+                                      title="Remove slot"
+                                    >
+                                      ✕
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </fieldset>
 
                 {/* Submit Button */}
                 <button type="submit" className={styles.submitBtn} disabled={loading}>

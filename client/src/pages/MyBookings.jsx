@@ -1,6 +1,6 @@
 // src/pages/MyBookings.jsx
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import toast from 'react-hot-toast'
 import Navbar from '../components/Navbar'
 import ErrorBoundary from '../components/ErrorBoundary'
@@ -30,23 +30,44 @@ export default function MyBookings() {
   const [filter, setFilter] = useState('all')
   const [cancellingId, setCancellingId] = useState(null)
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, bookingId: null })
+  const [lastUpdated, setLastUpdated] = useState(null)
+  const [refreshLabel, setRefreshLabel] = useState('')
+  const pollRef = useRef(null)
 
-  useEffect(() => {
-    fetchBookings()
-  }, [])
-
-  const fetchBookings = async () => {
-    setLoading(true)
-    setError('')
+  const fetchBookings = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
+    if (!silent) setError('')
     try {
       const data = await getMyBookings()
       setBookings(data.bookings || [])
+      setLastUpdated(new Date())
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load bookings.')
+      if (!silent) setError(err.response?.data?.message || 'Failed to load bookings.')
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
-  }
+  }, [])
+
+  // Initial load + poll every 30 seconds
+  useEffect(() => {
+    fetchBookings(false)
+    pollRef.current = setInterval(() => fetchBookings(true), 30000)
+    return () => clearInterval(pollRef.current)
+  }, [fetchBookings])
+
+  // Update "Updated X ago" label every 15 seconds
+  useEffect(() => {
+    if (!lastUpdated) return
+    const updateLabel = () => {
+      const seconds = Math.floor((new Date() - lastUpdated) / 1000)
+      if (seconds < 10) setRefreshLabel('Updated just now')
+      else if (seconds < 60) setRefreshLabel(`Updated ${seconds}s ago`)
+      else setRefreshLabel(`Updated ${Math.floor(seconds / 60)}m ago`)
+    }
+    updateLabel()
+    const t = setInterval(updateLabel, 15000)
+    return () => clearInterval(t)
+  }, [lastUpdated])
 
   // Step 1: open confirm modal
   const handleCancelClick = (bookingId) => {
@@ -139,6 +160,11 @@ export default function MyBookings() {
               ))}
             </div>
 
+            {/* Refresh indicator */}
+            {refreshLabel && !loading && (
+              <p className={styles.refreshLabel}>{refreshLabel} · auto-refreshes every 30s</p>
+            )}
+
             {/* Loading State */}
             {loading && <BookingsPageSkeleton cardCount={3} statsCount={3} />}
 
@@ -146,7 +172,7 @@ export default function MyBookings() {
             {error && !loading && (
               <div className={styles.errorBox}>
                 <p>{error}</p>
-                <button onClick={fetchBookings} className={styles.retryBtn}>
+                <button onClick={() => fetchBookings(false)} className={styles.retryBtn}>
                   Retry
                 </button>
               </div>
@@ -214,6 +240,32 @@ export default function MyBookings() {
                         <div className={styles.bookingDetail}>
                           <span className={styles.label}>📝 Notes</span>
                           <span className={styles.value}>{booking.notes}</span>
+                        </div>
+                      )}
+
+                      {booking.caseDescription && (
+                        <div className={styles.bookingDetail}>
+                          <span className={styles.label}>📋 Case</span>
+                          <span className={styles.value}>{booking.caseDescription}</span>
+                        </div>
+                      )}
+
+                      {booking.documents?.length > 0 && (
+                        <div className={styles.bookingDetail} style={{ alignItems: 'flex-start' }}>
+                          <span className={styles.label}>📎 Docs</span>
+                          <div className={styles.docList}>
+                            {booking.documents.map((doc, i) => (
+                              <a
+                                key={i}
+                                href={`${import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:5001'}${doc.path}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={styles.docLink}
+                              >
+                                {doc.mimetype === 'application/pdf' ? '📄' : '🖼️'} {doc.originalName}
+                              </a>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>

@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
+const path = require('path');
 
 const logger = require('./utils/logger');
 const requestId = require('./middleware/requestId.middleware');
@@ -89,6 +90,14 @@ app.use((req, res, next) => {
   req.params = sanitizeData(req.params);
   next();
 });
+
+// ─── Static files — uploaded documents ───────────────────────────────────────
+// Served at: GET /uploads/bookings/<filename>
+// Helmet blocks cross-origin reads so only our frontend (same origin in prod) can access them.
+app.use(
+  '/uploads',
+  express.static(path.join(__dirname, '../uploads'), { maxAge: '1d' })
+);
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {

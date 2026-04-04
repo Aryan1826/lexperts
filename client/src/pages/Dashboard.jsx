@@ -17,7 +17,7 @@ const STATUS_LABEL = {
 export default function Dashboard() {
   const user = getUser()
   const [bookings, setBookings] = useState([])
-  const [pagination, setPagination] = useState(null)
+  const [stats, setStats] = useState({ total: null, confirmed: null, pending: null })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -25,9 +25,18 @@ export default function Dashboard() {
     const fetchBookings = async () => {
       setLoading(true)
       try {
-        const data = await getMyBookings({ limit: 5 })
-        setBookings(data.bookings)
-        setPagination(data.pagination)
+        // Fetch recent bookings + accurate status counts in parallel
+        const [recent, confirmedRes, pendingRes] = await Promise.all([
+          getMyBookings({ limit: 5 }),
+          getMyBookings({ limit: 1, status: 'confirmed' }),
+          getMyBookings({ limit: 1, status: 'pending' }),
+        ])
+        setBookings(recent.bookings)
+        setStats({
+          total: recent.pagination.total,
+          confirmed: confirmedRes.pagination.total,
+          pending: pendingRes.pagination.total,
+        })
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load bookings.')
       } finally {
@@ -65,19 +74,15 @@ export default function Dashboard() {
 
           <div className={styles.statsRow}>
             <div className={styles.statCard}>
-              <span className={styles.statValue}>{pagination?.total ?? '—'}</span>
+              <span className={styles.statValue}>{stats.total ?? '—'}</span>
               <span className={styles.statLabel}>Total Bookings</span>
             </div>
             <div className={styles.statCard}>
-              <span className={styles.statValue}>
-                {bookings.filter(b => b.status === 'confirmed').length}
-              </span>
+              <span className={styles.statValue}>{stats.confirmed ?? '—'}</span>
               <span className={styles.statLabel}>Confirmed</span>
             </div>
             <div className={styles.statCard}>
-              <span className={styles.statValue}>
-                {bookings.filter(b => b.status === 'pending').length}
-              </span>
+              <span className={styles.statValue}>{stats.pending ?? '—'}</span>
               <span className={styles.statLabel}>Pending</span>
             </div>
           </div>
@@ -124,7 +129,9 @@ export default function Dashboard() {
                           </div>
                         </div>
                         <div className={styles.bookingMeta}>
-                          <span className={styles.bookingDate}>{b.date}</span>
+                          <span className={styles.bookingDate}>
+                            {b.date ? new Date(b.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                          </span>
                           <span className={styles.bookingSlot}>{b.slot?.start} – {b.slot?.end}</span>
                         </div>
                         <span className={`${styles.status} ${styles[st.cls]}`}>{st.label}</span>
@@ -140,10 +147,14 @@ export default function Dashboard() {
           {user?.role === 'expert' && (
             <section className={styles.section}>
               <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>Expert Dashboard</h2>
+                <h2 className={styles.sectionTitle}>Expert Quick Actions</h2>
               </div>
               <div className={styles.expertNote}>
                 <p>Manage your profile and view incoming bookings from clients.</p>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
+                  <Link to="/expert-dashboard" className={styles.ctaBtn}>View My Bookings</Link>
+                  <Link to="/expert-profile" className={styles.ctaBtnOutline}>Edit Profile</Link>
+                </div>
               </div>
             </section>
           )}

@@ -51,6 +51,26 @@
 
 .ctaBtn:hover { background: var(--gold); }
 
+.ctaBtnOutline {
+  display: inline-flex;
+  align-items: center;
+  height: 42px;
+  padding: 0 22px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--ink);
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.ctaBtnOutline:hover {
+  background: var(--ink);
+  color: var(--white);
+}
+
 .statsRow {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

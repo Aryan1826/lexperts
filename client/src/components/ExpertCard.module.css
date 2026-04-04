@@ -265,6 +265,96 @@
 .submitBtn:hover:not(:disabled) { background: var(--gold-light); }
 .submitBtn:disabled { opacity: 0.6; cursor: not-allowed; }
 
+/* ── Case description + file upload ── */
+.optional {
+  font-weight: 400;
+  color: var(--ink-muted);
+  font-size: 11px;
+  margin-left: 4px;
+}
+
+.textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 6px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  resize: vertical;
+  min-height: 72px;
+  color: var(--ink);
+  transition: border-color var(--transition);
+  box-sizing: border-box;
+}
+.textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(184, 146, 42, 0.1);
+}
+.charCount {
+  font-size: 11px;
+  color: var(--ink-muted);
+  text-align: right;
+  display: block;
+}
+
+.fileLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.fileInput { display: none; }
+.fileBtn {
+  padding: 7px 14px;
+  border: 1.5px dashed #ccc;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  background: #fafafa;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.fileLabel:hover .fileBtn {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(184, 146, 42, 0.04);
+}
+.fileHint { font-size: 11px; color: var(--ink-muted); }
+.fileError { font-size: 12px; color: var(--danger); margin: 4px 0 0; }
+
+.fileList {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fileItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f5f2ec;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.fileName { color: var(--ink); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fileSize { color: var(--ink-muted); }
+.fileRemove {
+  background: none;
+  border: none;
+  color: var(--ink-muted);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0 0 0 8px;
+  flex-shrink: 0;
+  transition: color var(--transition);
+}
+.fileRemove:hover { color: var(--danger); }
+
 /* ── Mobile overrides ── */
 @media (max-width: 480px) {
   .cardMain { gap: 12px; padding: 16px; }

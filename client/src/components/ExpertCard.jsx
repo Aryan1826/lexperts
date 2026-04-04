@@ -7,6 +7,8 @@ import styles from './ExpertCard.module.css'
 const today = new Date().toISOString().split('T')[0]
 
 const INITIAL_FORM = { date: '', start: '', end: '' }
+const MAX_FILES = 3
+const MAX_SIZE_MB = 5
 
 export default function ExpertCard({ expert }) {
   const user = expert.userId
@@ -16,6 +18,9 @@ export default function ExpertCard({ expert }) {
 
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(INITIAL_FORM)
+  const [description, setDescription] = useState('')
+  const [files, setFiles] = useState([])
+  const [fileError, setFileError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
@@ -23,8 +28,40 @@ export default function ExpertCard({ expert }) {
   const handleToggle = () => {
     setShowForm((prev) => !prev)
     setForm(INITIAL_FORM)
+    setDescription('')
+    setFiles([])
+    setFileError('')
     setSuccess('')
     setError('')
+  }
+
+  const handleFileChange = (e) => {
+    setFileError('')
+    const selected = Array.from(e.target.files)
+    const allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
+
+    for (const f of selected) {
+      if (!allowed.includes(f.type)) {
+        setFileError('Only PDF, JPG, and PNG files are allowed')
+        e.target.value = ''
+        return
+      }
+      if (f.size > MAX_SIZE_MB * 1024 * 1024) {
+        setFileError(`Each file must be under ${MAX_SIZE_MB} MB`)
+        e.target.value = ''
+        return
+      }
+    }
+    if (selected.length > MAX_FILES) {
+      setFileError(`Maximum ${MAX_FILES} files allowed`)
+      e.target.value = ''
+      return
+    }
+    setFiles(selected)
+  }
+
+  const removeFile = (idx) => {
+    setFiles((prev) => prev.filter((_, i) => i !== idx))
   }
 
   const handleChange = (e) => {
@@ -50,11 +87,11 @@ export default function ExpertCard({ expert }) {
 
     setSubmitting(true)
     try {
-      await createBooking({
-        expertId: expert._id,
-        date: form.date,
-        slot: { start: form.start, end: form.end },
-      })
+      await createBooking(
+        { expertId: expert._id, date: form.date, slot: { start: form.start, end: form.end } },
+        files,
+        description
+      )
       setSuccess('Booking request sent successfully!')
       setForm(INITIAL_FORM)
       setTimeout(() => {
@@ -155,6 +192,50 @@ export default function ExpertCard({ expert }) {
                   required
                 />
               </div>
+            </div>
+
+            {/* Case Description */}
+            <div className={styles.field}>
+              <label className={styles.label}>Case Description <span className={styles.optional}>(optional)</span></label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Briefly describe your legal issue so the expert can prepare..."
+                className={styles.textarea}
+                maxLength={2000}
+                rows={3}
+              />
+              <span className={styles.charCount}>{description.length}/2000</span>
+            </div>
+
+            {/* Document Upload */}
+            <div className={styles.field}>
+              <label className={styles.label}>Attach Documents <span className={styles.optional}>(optional — max {MAX_FILES} files, {MAX_SIZE_MB}MB each)</span></label>
+              <label className={styles.fileLabel}>
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  multiple
+                  onChange={handleFileChange}
+                  className={styles.fileInput}
+                />
+                <span className={styles.fileBtn}>📎 Choose files</span>
+                <span className={styles.fileHint}>PDF, JPG, PNG accepted</span>
+              </label>
+              {fileError && <p className={styles.fileError}>{fileError}</p>}
+              {files.length > 0 && (
+                <ul className={styles.fileList}>
+                  {files.map((f, i) => (
+                    <li key={i} className={styles.fileItem}>
+                      <span className={styles.fileName}>
+                        {f.type === 'application/pdf' ? '📄' : '🖼️'} {f.name}
+                        <span className={styles.fileSize}> ({(f.size / 1024).toFixed(0)} KB)</span>
+                      </span>
+                      <button type="button" className={styles.fileRemove} onClick={() => removeFile(i)}>✕</button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <div className={styles.formActions}>

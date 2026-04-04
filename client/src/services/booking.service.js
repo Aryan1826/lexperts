@@ -2,8 +2,17 @@
 
 import api from './api'
 
-export const createBooking = async (data) => {
-  const res = await api.post('/bookings', data)
+export const createBooking = async (data, files = [], caseDescription = '') => {
+  const formData = new FormData()
+  formData.append('expertId', data.expertId)
+  formData.append('date', data.date)
+  formData.append('slot[start]', data.slot.start)
+  formData.append('slot[end]', data.slot.end)
+  if (caseDescription.trim()) formData.append('caseDescription', caseDescription.trim())
+  files.forEach((file) => formData.append('documents', file))
+
+  // Axios auto-sets multipart/form-data with correct boundary when passed a FormData object
+  const res = await api.post('/bookings', formData)
   return res.data.data.booking
 }
 
