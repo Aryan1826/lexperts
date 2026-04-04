@@ -239,6 +239,19 @@
   text-align: right;
 }
 
+.docList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.docLink {
+  font-size: 13px;
+  color: var(--gold);
+  text-decoration: underline;
+  word-break: break-all;
+}
+.docLink:hover { opacity: 0.75; }
+
 .errorBox {
   background: #ffebee;
   border: 1px solid #ef5350;

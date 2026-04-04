@@ -87,7 +87,7 @@ const validateSlotAgainstAvailability = (expert, date, slot) => {
  * 3. Duplicate slot attempts fail at the unique index level as final defense
  */
 const createBooking = async (clientId, bookingData) => {
-  const { expertId, date, slot, notes } = bookingData;
+  const { expertId, date, slot, notes, caseDescription, documents } = bookingData;
 
   // ─── PRE-TRANSACTION VALIDATION ───────────────────────────────────────
   // These checks don't require atomicity and can fail fast
@@ -149,6 +149,8 @@ const createBooking = async (clientId, bookingData) => {
           date,
           slot,
           notes: notes || '',
+          caseDescription: caseDescription || '',
+          documents: documents || [],
           consultationFeeAtBooking: expert.consultationFee,
         },
       ],

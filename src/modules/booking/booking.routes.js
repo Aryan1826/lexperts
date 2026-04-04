@@ -5,6 +5,7 @@ const router = express.Router();
 const bookingController = require('./booking.controller');
 const { protect, restrictTo } = require('../../middleware/authMiddleware');
 const { validateCreateBooking, validateCancelBooking } = require('./booking.validator');
+const { upload, handleMulterError } = require('../../middleware/upload');
 
 router.use(protect);
 
@@ -12,6 +13,8 @@ router.use(protect);
 router.post(
   '/',
   restrictTo('client'),
+  upload.array('documents', 3),   // parse files first → req.files available
+  handleMulterError,               // convert multer errors → AppError
   validateCreateBooking,
   bookingController.createBooking
 );

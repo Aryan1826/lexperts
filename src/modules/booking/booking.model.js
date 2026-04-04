@@ -50,6 +50,20 @@ const bookingSchema = new mongoose.Schema(
       trim: true,
       maxlength: [1000, 'Notes cannot exceed 1000 characters'],
     },
+    caseDescription: {
+      type: String,
+      trim: true,
+      maxlength: [2000, 'Case description cannot exceed 2000 characters'],
+    },
+    documents: [
+      {
+        originalName: { type: String, required: true },
+        filename:     { type: String, required: true }, // stored name on disk
+        path:         { type: String, required: true }, // relative URL path
+        mimetype:     { type: String, required: true },
+        size:         { type: Number, required: true }, // bytes
+      },
+    ],
     consultationFeeAtBooking: {
       type: Number,
       required: [true, 'Consultation fee at time of booking is required'],

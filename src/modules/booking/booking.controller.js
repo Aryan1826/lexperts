@@ -4,7 +4,19 @@ const bookingService = require('./booking.service');
 const catchAsync = require('../../utils/catchAsync');
 
 const createBooking = catchAsync(async (req, res) => {
-  const booking = await bookingService.createBooking(req.user._id, req.body);
+  // Map multer file objects → lean document metadata stored in DB
+  const documents = (req.files || []).map((f) => ({
+    originalName: f.originalname,
+    filename:     f.filename,
+    path:         `/uploads/bookings/${f.filename}`,
+    mimetype:     f.mimetype,
+    size:         f.size,
+  }));
+
+  const booking = await bookingService.createBooking(req.user._id, {
+    ...req.body,
+    documents,
+  });
 
   res.status(201).json({
     success: true,

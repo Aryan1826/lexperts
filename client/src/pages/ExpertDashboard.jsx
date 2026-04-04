@@ -267,6 +267,32 @@ export default function ExpertDashboard() {
                           <span className={styles.value}>{booking.notes}</span>
                         </div>
                       )}
+
+                      {booking.caseDescription && (
+                        <div className={styles.bookingDetail}>
+                          <span className={styles.label}>📋 Case</span>
+                          <span className={styles.value}>{booking.caseDescription}</span>
+                        </div>
+                      )}
+
+                      {booking.documents?.length > 0 && (
+                        <div className={styles.bookingDetail} style={{ alignItems: 'flex-start' }}>
+                          <span className={styles.label}>📎 Docs</span>
+                          <div className={styles.docList}>
+                            {booking.documents.map((doc, i) => (
+                              <a
+                                key={i}
+                                href={`${import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:5001'}${doc.path}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={styles.docLink}
+                              >
+                                {doc.mimetype === 'application/pdf' ? '📄' : '🖼️'} {doc.originalName}
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className={styles.cardFooter}>

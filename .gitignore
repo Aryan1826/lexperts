@@ -26,3 +26,7 @@ Thumbs.db
 
 # PM2
 ecosystem.config.js.bak
+
+# Uploaded files — keep folder structure but not actual files
+uploads/bookings/*
+!uploads/bookings/.gitkeep
