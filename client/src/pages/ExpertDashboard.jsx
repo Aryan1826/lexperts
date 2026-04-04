@@ -7,6 +7,7 @@ import ErrorBoundary from '../components/ErrorBoundary'
 import ConfirmModal from '../components/ConfirmModal'
 import { BookingsPageSkeleton } from '../components/LoadingSkeleton'
 import { getExpertBookings, confirmBooking, cancelBooking } from '../services/booking.service'
+import { SERVER_URL } from '../config'
 import styles from './ExpertDashboard.module.css'
 
 const STATUS_COLORS = {
@@ -282,7 +283,7 @@ export default function ExpertDashboard() {
                             {booking.documents.map((doc, i) => (
                               <a
                                 key={i}
-                                href={`${import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:5001'}${doc.path}`}
+                                href={`${SERVER_URL}${doc.path}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className={styles.docLink}
