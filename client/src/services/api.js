@@ -53,9 +53,11 @@ const API_BASE_URL = 'http://localhost:5001/api/v1'
 // This allows cookies (accessToken, refreshToken) to be sent automatically
 const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  // ⚠️  Do NOT set Content-Type here.
+  // Axios auto-detects it per request:
+  //   plain object  → application/json
+  //   FormData      → multipart/form-data  (with correct boundary)
+  // Hardcoding application/json breaks multipart uploads (multer never sees the file).
   withCredentials: true, // ✅ Essential: Sends cookies with every request
 })
 
