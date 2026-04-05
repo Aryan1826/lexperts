@@ -296,11 +296,16 @@ const getBookingById = async (bookingId, userId, userRole) => {
 
 /**
  * Confirm a pending booking using atomic operation.
- * Ensures status transitions are safe under concurrency.
+ * Optionally saves the expert's notes/response to the client.
  */
-const confirmBooking = async (bookingId, userId) => {
+const confirmBooking = async (bookingId, userId, expertNotes) => {
   const expert = await Expert.findOne({ userId });
   if (!expert) throw new AppError('Expert profile not found', 404);
+
+  const updateFields = { status: 'confirmed' };
+  if (expertNotes && expertNotes.trim()) {
+    updateFields.expertNotes = expertNotes.trim();
+  }
 
   // Use findOneAndUpdate for atomic status transition
   const booking = await Booking.findOneAndUpdate(
@@ -309,13 +314,8 @@ const confirmBooking = async (bookingId, userId) => {
       expertId: expert._id,
       status: 'pending', // Only update if currently pending
     },
-    {
-      $set: { status: 'confirmed' },
-    },
-    {
-      new: true,
-      runValidators: true,
-    }
+    { $set: updateFields },
+    { new: true, runValidators: true }
   )
     .populate('clientId', 'name email')
     .populate('expertId');
@@ -342,10 +342,43 @@ const confirmBooking = async (bookingId, userId) => {
 };
 
 /**
+ * Add or update the expert's notes on a booking they own.
+ * Works on pending OR confirmed bookings without changing status.
+ */
+const addExpertNote = async (bookingId, userId, expertNotes) => {
+  const expert = await Expert.findOne({ userId });
+  if (!expert) throw new AppError('Expert profile not found', 404);
+
+  const booking = await Booking.findOneAndUpdate(
+    {
+      _id: bookingId,
+      expertId: expert._id,
+      status: { $in: ['pending', 'confirmed'] },
+    },
+    { $set: { expertNotes: expertNotes?.trim() || '' } },
+    { new: true, runValidators: true }
+  )
+    .populate('clientId', 'name email')
+    .populate('expertId');
+
+  if (!booking) {
+    const existingBooking = await Booking.findById(bookingId);
+    if (!existingBooking) throw new AppError('Booking not found', 404);
+    if (existingBooking.expertId.toString() !== expert._id.toString()) {
+      throw new AppError('This booking does not belong to your expert account', 403);
+    }
+    throw new AppError('Cannot add notes to a completed or cancelled booking', 400);
+  }
+
+  return booking;
+};
+
+/**
  * Cancel a booking using atomic operation.
  * Ensures only authorized users can cancel and status transitions are safe.
+ * Expert can pass a referralMessage (e.g. "Contact Advocate XYZ for Criminal Law").
  */
-const cancelBooking = async (bookingId, userId, userRole, reason) => {
+const cancelBooking = async (bookingId, userId, userRole, reason, referralMessage) => {
   const booking = await Booking.findById(bookingId);
   if (!booking) throw new AppError('Booking not found', 404);
 
@@ -374,6 +407,9 @@ const cancelBooking = async (bookingId, userId, userRole, reason) => {
         status: 'cancelled',
         cancelledBy: userId,
         cancellationReason: reason || null,
+        ...(referralMessage && referralMessage.trim()
+          ? { referralMessage: referralMessage.trim() }
+          : {}),
       },
     },
     {
@@ -421,5 +457,6 @@ module.exports = {
   getExpertBookings,
   getBookingById,
   confirmBooking,
+  addExpertNote,
   cancelBooking,
 };

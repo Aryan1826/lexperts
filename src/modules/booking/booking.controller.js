@@ -60,11 +60,30 @@ const getBookingById = catchAsync(async (req, res) => {
 });
 
 const confirmBooking = catchAsync(async (req, res) => {
-  const booking = await bookingService.confirmBooking(req.params.id, req.user._id);
+  // Expert can optionally include their response notes when confirming
+  const booking = await bookingService.confirmBooking(
+    req.params.id,
+    req.user._id,
+    req.body.expertNotes
+  );
 
   res.status(200).json({
     success: true,
     message: 'Booking confirmed successfully',
+    data: { booking },
+  });
+});
+
+const addExpertNote = catchAsync(async (req, res) => {
+  const booking = await bookingService.addExpertNote(
+    req.params.id,
+    req.user._id,
+    req.body.expertNotes
+  );
+
+  res.status(200).json({
+    success: true,
+    message: 'Expert note saved successfully',
     data: { booking },
   });
 });
@@ -74,7 +93,8 @@ const cancelBooking = catchAsync(async (req, res) => {
     req.params.id,
     req.user._id,
     req.user.role,
-    req.body.reason
+    req.body.reason,
+    req.body.referralMessage  // Expert can pass referral info when declining
   );
 
   res.status(200).json({
@@ -90,5 +110,6 @@ module.exports = {
   getExpertBookings,
   getBookingById,
   confirmBooking,
+  addExpertNote,
   cancelBooking,
 };

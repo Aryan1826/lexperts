@@ -293,6 +293,141 @@
   font-weight: 500;
 }
 
+/* ── Expert Response Section ─────────────────────────────────── */
+.expertResponseSection {
+  padding: 0 24px 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.expertResponseLabel {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin: 0 0 8px 0;
+  letter-spacing: 0.5px;
+}
+
+.expertResponseTextarea {
+  width: 100%;
+  min-height: 88px;
+  padding: 12px;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--ink);
+  resize: vertical;
+  transition: border-color var(--transition);
+  box-sizing: border-box;
+  background: #fafafa;
+}
+
+.expertResponseTextarea:focus {
+  outline: none;
+  border-color: var(--gold);
+  background: white;
+}
+
+.expertResponseTextarea::placeholder {
+  color: #aaa;
+}
+
+.saveNoteRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.saveNoteBtn {
+  padding: 8px 18px;
+  background: var(--ink);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: var(--font-sans);
+}
+
+.saveNoteBtn:hover:not(:disabled) {
+  background: #444;
+  transform: translateY(-1px);
+}
+
+.saveNoteBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Expert Response (read-only) shown on card ─────────────────── */
+.expertResponseDisplay {
+  padding: 0 24px 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.expertResponseBubble {
+  background: #f0f7ff;
+  border-left: 3px solid #2196F3;
+  border-radius: 0 6px 6px 0;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--ink);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ── Referral message on cancelled bookings ────────────────────── */
+.referralBox {
+  padding: 0 24px 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.referralBubble {
+  background: #fff8e1;
+  border-left: 3px solid #FF9800;
+  border-radius: 0 6px 6px 0;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--ink);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.referralTitle {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin: 0 0 8px 0;
+}
+
+/* ── Referral textarea inside decline modal ────────────────────── */
+.modalTextarea {
+  width: 100%;
+  min-height: 88px;
+  padding: 12px;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--ink);
+  resize: vertical;
+  box-sizing: border-box;
+  margin-top: 12px;
+  background: #fafafa;
+}
+
+.modalTextarea:focus {
+  outline: none;
+  border-color: var(--gold);
+  background: white;
+}
+
 .cardFooter {
   display: flex;
   gap: 12px;

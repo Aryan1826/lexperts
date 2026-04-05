@@ -55,6 +55,18 @@ const bookingSchema = new mongoose.Schema(
       trim: true,
       maxlength: [2000, 'Case description cannot exceed 2000 characters'],
     },
+    // Expert's response to the client about their case
+    expertNotes: {
+      type: String,
+      trim: true,
+      maxlength: [2000, 'Expert notes cannot exceed 2000 characters'],
+    },
+    // Expert's referral message when declining (e.g. "Contact Advocate XYZ for Criminal Law")
+    referralMessage: {
+      type: String,
+      trim: true,
+      maxlength: [1000, 'Referral message cannot exceed 1000 characters'],
+    },
     documents: [
       {
         originalName: { type: String, required: true },

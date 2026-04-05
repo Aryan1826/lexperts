@@ -62,6 +62,12 @@ const validateCancelBooking = [
     .trim()
     .isLength({ max: 500 })
     .withMessage('Cancellation reason cannot exceed 500 characters'),
+  body('referralMessage')
+    .optional()
+    .isString()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('Referral message cannot exceed 1000 characters'),
   handleValidation,
 ];
 

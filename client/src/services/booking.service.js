@@ -29,14 +29,20 @@ export const getExpertBookings = async (params = {}) => {
   return res.data.data
 }
 
-export const cancelBooking = async (bookingId, reason = '') => {
+export const cancelBooking = async (bookingId, reason = '', referralMessage = '') => {
   const res = await api.patch(`/bookings/${bookingId}/cancel`, {
     reason: reason || '',
+    referralMessage: referralMessage || '',
   })
   return res.data.data
 }
 
-export const confirmBooking = async (bookingId) => {
-  const res = await api.patch(`/bookings/${bookingId}/confirm`)
+export const confirmBooking = async (bookingId, expertNotes = '') => {
+  const res = await api.patch(`/bookings/${bookingId}/confirm`, { expertNotes })
+  return res.data.data
+}
+
+export const addExpertNote = async (bookingId, expertNotes) => {
+  const res = await api.patch(`/bookings/${bookingId}/expert-note`, { expertNotes })
   return res.data.data
 }
