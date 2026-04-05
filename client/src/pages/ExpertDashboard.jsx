@@ -133,8 +133,14 @@ export default function ExpertDashboard() {
   }
 
   // ── Open decline modal ────────────────────────────────────────
+  // Pre-fill the referral textarea with whatever the expert already typed in the card
+  // so they don't have to type it twice
   const handleDeclineClick = (bookingId) => {
-    setDeclineModal({ isOpen: true, bookingId, referralMessage: '' })
+    setDeclineModal({
+      isOpen: true,
+      bookingId,
+      referralMessage: noteDrafts[bookingId] || '',
+    })
   }
 
   // ── Confirm decline ───────────────────────────────────────────
@@ -200,8 +206,11 @@ export default function ExpertDashboard() {
             </p>
 
             <label style={{ fontWeight: 600, fontSize: '13px', color: 'var(--ink-muted)', textTransform: 'uppercase' }}>
-              Referral / Reason (optional)
+              Message to Client — Reason / Referral (optional)
             </label>
+            <p style={{ fontSize: '13px', color: 'var(--ink-muted)', margin: '4px 0 8px', lineHeight: 1.4 }}>
+              This message will be shown to the client. You can explain why you're declining or recommend another lawyer.
+            </p>
             <textarea
               className={styles.modalTextarea}
               placeholder={`E.g. "This case falls under Criminal Law. I specialise in Civil Law — I recommend contacting Advocate Sharma for this matter."`}
@@ -402,14 +411,19 @@ export default function ExpertDashboard() {
                     {(booking.status === 'pending' || booking.status === 'confirmed') && (
                       <div className={styles.expertResponseSection}>
                         <p className={styles.expertResponseLabel}>
-                          💬 Your Response to Client (optional)
+                          💬 Your Message to Client
+                        </p>
+                        <p style={{ fontSize: '12px', color: 'var(--ink-muted)', margin: '0 0 8px', lineHeight: 1.4 }}>
+                          {booking.status === 'pending'
+                            ? 'This will be sent to the client when you confirm. If you decline, this text will be used as your referral/reason message.'
+                            : 'Update your message to the client — changes appear in their My Bookings page.'}
                         </p>
                         <textarea
                           className={styles.expertResponseTextarea}
                           placeholder={
                             booking.status === 'pending'
-                              ? 'Write your response before confirming — e.g. "I\'ve reviewed your case and I can help with this…"'
-                              : 'Add or update your message to the client — it will be visible in their booking…'
+                              ? 'E.g. "I\'ve reviewed your case and I can help. Please bring your original documents to the session." — OR if declining: "This is a Criminal Law matter. I specialise in Civil Law — I recommend contacting Advocate Sharma."'
+                              : 'Update your response to the client…'
                           }
                           value={noteDrafts[booking._id] ?? booking.expertNotes ?? ''}
                           onChange={(e) =>
@@ -421,7 +435,7 @@ export default function ExpertDashboard() {
                           <span style={{ fontSize: '12px', color: '#aaa' }}>
                             {(noteDrafts[booking._id] ?? booking.expertNotes ?? '').length}/2000
                           </span>
-                          {/* Save button only for confirmed (pending saves on confirm click) */}
+                          {/* Save button only for confirmed (pending saves on confirm/decline click) */}
                           {booking.status === 'confirmed' && (
                             <div className={styles.saveNoteRow}>
                               <button

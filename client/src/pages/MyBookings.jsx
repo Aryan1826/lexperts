@@ -161,9 +161,27 @@ export default function MyBookings() {
               ))}
             </div>
 
-            {/* Refresh indicator */}
-            {refreshLabel && !loading && (
-              <p className={styles.refreshLabel}>{refreshLabel} · auto-refreshes every 30s</p>
+            {/* Refresh indicator + manual refresh button */}
+            {!loading && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <p className={styles.refreshLabel} style={{ margin: 0 }}>
+                  {refreshLabel ? `${refreshLabel} · auto-refreshes every 30s` : ''}
+                </p>
+                <button
+                  onClick={() => fetchBookings(false)}
+                  style={{
+                    background: 'transparent', border: '1px solid #d0d0d0', borderRadius: '6px',
+                    padding: '6px 14px', fontSize: '13px', color: 'var(--ink-muted)',
+                    cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--gold)'; e.currentTarget.style.color = 'var(--ink)' }}
+                  onMouseOut={(e) => { e.currentTarget.style.borderColor = '#d0d0d0'; e.currentTarget.style.color = 'var(--ink-muted)' }}
+                >
+                  ↻ Refresh
+                </button>
+              </div>
             )}
 
             {/* Loading State */}
