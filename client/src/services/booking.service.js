@@ -11,8 +11,11 @@ export const createBooking = async (data, files = [], caseDescription = '') => {
   if (caseDescription.trim()) formData.append('caseDescription', caseDescription.trim())
   files.forEach((file) => formData.append('documents', file))
 
-  // Axios auto-sets multipart/form-data with correct boundary when passed a FormData object
-  const res = await api.post('/bookings', formData)
+  // Pass Content-Type: undefined so Axios lets the browser set multipart/form-data
+  // with the correct boundary string — required for multer to parse the files on the server.
+  const res = await api.post('/bookings', formData, {
+    headers: { 'Content-Type': undefined },
+  })
   return res.data.data.booking
 }
 
