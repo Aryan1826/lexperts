@@ -99,6 +99,16 @@ const expertSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    verificationStatus: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending',
+    },
+    rejectionReason: {
+      type: String,
+      trim: true,
+      maxlength: [500, 'Rejection reason cannot exceed 500 characters'],
+    },
   },
   {
     timestamps: true,
@@ -108,6 +118,7 @@ const expertSchema = new mongoose.Schema(
 );
 
 expertSchema.index({ specialization: 1 });
+expertSchema.index({ verificationStatus: 1 });
 expertSchema.index({ rating: -1 });
 expertSchema.index({ consultationFee: 1 });
 

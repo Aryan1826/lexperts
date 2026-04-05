@@ -11,6 +11,7 @@ import Experts from './pages/Experts'
 import MyBookings from './pages/MyBookings'
 import ExpertProfile from './pages/ExpertProfile'
 import ExpertDashboard from './pages/ExpertDashboard'
+import AdminPanel from './pages/AdminPanel'
 import { getToken, getUser } from './services/auth.service'
 
 const PrivateRoute = ({ children }) => {
@@ -26,6 +27,14 @@ const ExpertOnlyRoute = ({ children }) => {
   const user = getUser()
   if (!token) return <Navigate to="/login" replace />
   if (user?.role !== 'expert') return <Navigate to="/dashboard" replace />
+  return children
+}
+
+const AdminRoute = ({ children }) => {
+  const token = getToken()
+  const user = getUser()
+  if (!token) return <Navigate to="/login" replace />
+  if (user?.role !== 'admin') return <Navigate to="/dashboard" replace />
   return children
 }
 
@@ -63,6 +72,7 @@ export default function App() {
         <Route path="/my-bookings" element={<PrivateRoute><MyBookings /></PrivateRoute>} />
         <Route path="/expert-profile" element={<ExpertOnlyRoute><ExpertProfile /></ExpertOnlyRoute>} />
         <Route path="/expert-dashboard" element={<ExpertOnlyRoute><ExpertDashboard /></ExpertOnlyRoute>} />
+        <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
