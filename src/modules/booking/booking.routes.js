@@ -54,6 +54,13 @@ router.patch(
   bookingController.confirmBooking
 );
 
+// Expert adds/updates their notes on a booking (without changing status)
+router.patch(
+  '/:id/expert-note',
+  restrictTo('expert'),
+  bookingController.addExpertNote
+);
+
 // Shared routes (client + expert + admin)
 router.get('/:id', bookingController.getBookingById);
 

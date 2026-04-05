@@ -253,7 +253,7 @@ export default function MyBookings() {
 
                       {booking.documents?.length > 0 && (
                         <div className={styles.bookingDetail} style={{ alignItems: 'flex-start' }}>
-                          <span className={styles.label}>📎 Docs</span>
+                          <span className={styles.label}>📎 Your Documents</span>
                           <div className={styles.docList}>
                             {booking.documents.map((doc, i) => (
                               <a
@@ -270,6 +270,46 @@ export default function MyBookings() {
                         </div>
                       )}
                     </div>
+
+                    {/* Expert's response — blue bubble, shown when expert has added notes */}
+                    {booking.expertNotes && (
+                      <div style={{ padding: '0 24px 20px', borderBottom: '1px solid #f0f0f0' }}>
+                        <p style={{
+                          fontSize: '12px', fontWeight: 600, textTransform: 'uppercase',
+                          color: 'var(--ink-muted)', margin: '0 0 8px', letterSpacing: '0.5px',
+                        }}>
+                          💬 Expert's Response
+                        </p>
+                        <div style={{
+                          background: '#f0f7ff', borderLeft: '3px solid #2196F3',
+                          borderRadius: '0 6px 6px 0', padding: '12px 16px',
+                          fontSize: '14px', color: 'var(--ink)', lineHeight: 1.6,
+                          whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                        }}>
+                          {booking.expertNotes}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Referral — amber bubble, shown when expert declined with a referral */}
+                    {booking.status === 'cancelled' && booking.referralMessage && (
+                      <div style={{ padding: '0 24px 20px', borderBottom: '1px solid #f0f0f0' }}>
+                        <p style={{
+                          fontSize: '12px', fontWeight: 600, textTransform: 'uppercase',
+                          color: 'var(--ink-muted)', margin: '0 0 8px', letterSpacing: '0.5px',
+                        }}>
+                          🔀 Expert's Referral
+                        </p>
+                        <div style={{
+                          background: '#fff8e1', borderLeft: '3px solid #FF9800',
+                          borderRadius: '0 6px 6px 0', padding: '12px 16px',
+                          fontSize: '14px', color: 'var(--ink)', lineHeight: 1.6,
+                          whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                        }}>
+                          {booking.referralMessage}
+                        </div>
+                      </div>
+                    )}
 
                     <div className={styles.cardFooter}>
                       {(booking.status === 'pending' || booking.status === 'confirmed') && (
