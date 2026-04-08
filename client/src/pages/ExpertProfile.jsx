@@ -480,8 +480,6 @@ export default function ExpertProfile() {
                 </div>
               )}
 
-              </div> {/* hidden div cleanup */}
-
               {/* Helpful Tips */}
               <div className={styles.tipsBox}>
                 <h4>💡 Tips for a Strong Profile</h4>
