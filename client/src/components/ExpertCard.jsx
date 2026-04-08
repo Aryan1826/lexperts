@@ -1,14 +1,47 @@
 // src/components/ExpertCard.jsx
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createBooking } from '../services/booking.service'
+import { getAvailableSlots } from '../services/expert.service'
 import styles from './ExpertCard.module.css'
 
 const today = new Date().toISOString().split('T')[0]
-
-const INITIAL_FORM = { date: '', start: '', end: '' }
 const MAX_FILES = 3
 const MAX_SIZE_MB = 5
+
+// Duration options: label → number of 30-min slots
+const DURATIONS = [
+  { label: '30 min', slots: 1 },
+  { label: '1 hr',   slots: 2 },
+  { label: '1.5 hr', slots: 3 },
+  { label: '2 hr',   slots: 4 },
+]
+
+const timeToMinutes = (time) => {
+  const [h, m] = time.split(':').map(Number)
+  return h * 60 + m
+}
+
+const minutesToTime = (minutes) => {
+  const h = Math.floor(minutes / 60).toString().padStart(2, '0')
+  const m = (minutes % 60).toString().padStart(2, '0')
+  return `${h}:${m}`
+}
+
+/**
+ * Given the available slots list, a chosen start time, and a duration in 30-min
+ * units, return whether ALL required consecutive slots are in the available list.
+ */
+const isRangeAvailable = (slots, startTime, durationSlots) => {
+  const startMin = timeToMinutes(startTime)
+  for (let i = 0; i < durationSlots; i++) {
+    const chunkStart = minutesToTime(startMin + i * 30)
+    const chunkEnd   = minutesToTime(startMin + (i + 1) * 30)
+    const found = slots.some((s) => s.start === chunkStart && s.end === chunkEnd)
+    if (!found) return false
+  }
+  return true
+}
 
 export default function ExpertCard({ expert }) {
   const user = expert.userId
@@ -16,88 +49,116 @@ export default function ExpertCard({ expert }) {
     ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
     : 'EX'
 
-  const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState(INITIAL_FORM)
-  const [description, setDescription] = useState('')
-  const [files, setFiles] = useState([])
-  const [fileError, setFileError] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [success, setSuccess] = useState('')
-  const [error, setError] = useState('')
+  const feePerSlot = expert.consultationFee || 0
 
+  // ── UI visibility ──────────────────────────────────────────────────────────
+  const [showForm, setShowForm]     = useState(false)
+
+  // ── Slot picker state ──────────────────────────────────────────────────────
+  const [date, setDate]                       = useState('')
+  const [availableSlots, setAvailableSlots]   = useState([])
+  const [loadingSlots, setLoadingSlots]       = useState(false)
+  const [slotsError, setSlotsError]           = useState('')
+  const [selectedStart, setSelectedStart]     = useState(null)
+  const [duration, setDuration]               = useState(1) // in 30-min units
+
+  // ── Case description + docs ────────────────────────────────────────────────
+  const [description, setDescription]  = useState('')
+  const [files, setFiles]               = useState([])
+  const [fileError, setFileError]       = useState('')
+
+  // ── Submission state ───────────────────────────────────────────────────────
+  const [submitting, setSubmitting]   = useState(false)
+  const [success, setSuccess]         = useState('')
+  const [error, setError]             = useState('')
+
+  // ── When date changes, fetch available slots ───────────────────────────────
+  useEffect(() => {
+    if (!date || !showForm) return
+    setSelectedStart(null)
+    setAvailableSlots([])
+    setSlotsError('')
+
+    const fetch = async () => {
+      setLoadingSlots(true)
+      try {
+        const slots = await getAvailableSlots(expert._id, date)
+        setAvailableSlots(slots)
+        if (slots.length === 0) setSlotsError('No available slots for this date.')
+      } catch {
+        setSlotsError('Could not load slots. Please try another date.')
+      } finally {
+        setLoadingSlots(false)
+      }
+    }
+    fetch()
+  }, [date, showForm, expert._id])
+
+  // Reset when form is closed
   const handleToggle = () => {
     setShowForm((prev) => !prev)
-    setForm(INITIAL_FORM)
+    setDate('')
+    setAvailableSlots([])
+    setSelectedStart(null)
+    setDuration(1)
     setDescription('')
     setFiles([])
     setFileError('')
     setSuccess('')
     setError('')
+    setSlotsError('')
   }
 
+  // ── File handlers ──────────────────────────────────────────────────────────
   const handleFileChange = (e) => {
     setFileError('')
     const selected = Array.from(e.target.files)
     const allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
-
     for (const f of selected) {
-      if (!allowed.includes(f.type)) {
-        setFileError('Only PDF, JPG, and PNG files are allowed')
-        e.target.value = ''
-        return
-      }
-      if (f.size > MAX_SIZE_MB * 1024 * 1024) {
-        setFileError(`Each file must be under ${MAX_SIZE_MB} MB`)
-        e.target.value = ''
-        return
-      }
+      if (!allowed.includes(f.type)) { setFileError('Only PDF, JPG, PNG allowed'); e.target.value = ''; return }
+      if (f.size > MAX_SIZE_MB * 1024 * 1024) { setFileError(`Each file must be under ${MAX_SIZE_MB} MB`); e.target.value = ''; return }
     }
-    if (selected.length > MAX_FILES) {
-      setFileError(`Maximum ${MAX_FILES} files allowed`)
-      e.target.value = ''
-      return
-    }
+    if (selected.length > MAX_FILES) { setFileError(`Maximum ${MAX_FILES} files`); e.target.value = ''; return }
     setFiles(selected)
   }
 
-  const removeFile = (idx) => {
-    setFiles((prev) => prev.filter((_, i) => i !== idx))
-  }
+  const removeFile = (idx) => setFiles((prev) => prev.filter((_, i) => i !== idx))
 
-  const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
-    setError('')
-    setSuccess('')
-  }
-  
+  // ── Derived values ─────────────────────────────────────────────────────────
+  const endTime = selectedStart ? minutesToTime(timeToMinutes(selectedStart) + duration * 30) : null
+  const totalFee = duration * feePerSlot
 
+  // Determine which start slots are valid for the currently chosen duration
+  const validStartSlots = availableSlots.filter((s) =>
+    isRangeAvailable(availableSlots, s.start, duration)
+  )
+
+  // ── Submit ─────────────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setSuccess('')
 
-    if (!form.date || !form.start || !form.end) {
-      setError('Please fill in all fields: date, start time, and end time.')
-      return
-    }
-    if (form.end <= form.start) {
-      setError('End time must be after start time.')
+    if (!date) { setError('Please select a date.'); return }
+    if (!selectedStart) { setError('Please select a time slot.'); return }
+    if (!isRangeAvailable(availableSlots, selectedStart, duration)) {
+      setError('Selected slot range is no longer available. Please pick another.')
       return
     }
 
     setSubmitting(true)
     try {
       await createBooking(
-        { expertId: expert._id, date: form.date, slot: { start: form.start, end: form.end } },
+        { expertId: expert._id, date, slot: { start: selectedStart, end: endTime } },
         files,
         description
       )
-      setSuccess('Booking request sent successfully!')
-      setForm(INITIAL_FORM)
-      setTimeout(() => {
-        setShowForm(false)
-        setSuccess('')
-      }, 2500)
+      setSuccess('Booking request sent! The expert will confirm shortly.')
+      setDate('')
+      setSelectedStart(null)
+      setDuration(1)
+      setAvailableSlots([])
+      setTimeout(() => { setShowForm(false); setSuccess('') }, 2500)
     } catch (err) {
       setError(err.response?.data?.message || 'Booking failed. Please try again.')
     } finally {
@@ -132,7 +193,7 @@ export default function ExpertCard({ expert }) {
               <span className={styles.metaDivider} />
               <span className={styles.metaItem}>
                 <span className={styles.metaLabel}>Fee</span>
-                ₹{expert.consultationFee}
+                ₹{feePerSlot}/30min
               </span>
             </div>
 
@@ -154,53 +215,116 @@ export default function ExpertCard({ expert }) {
           </h4>
 
           {success && <div className={styles.successMsg}>✓ {success}</div>}
-          {error && <div className={styles.errorMsg}>{error}</div>}
+          {error   && <div className={styles.errorMsg}>{error}</div>}
 
           <form onSubmit={handleSubmit} className={styles.form}>
-            <div className={styles.formRow}>
-              <div className={styles.field}>
-                <label className={styles.label}>Date</label>
-                <input
-                  type="date"
-                  name="date"
-                  value={form.date}
-                  onChange={handleChange}
-                  className={styles.input}
-                  min={today}
-                  required
-                />
-              </div>
-              <div className={styles.field}>
-                <label className={styles.label}>Start Time</label>
-                <input
-                  type="time"
-                  name="start"
-                  value={form.start}
-                  onChange={handleChange}
-                  className={styles.input}
-                  required
-                />
-              </div>
-              <div className={styles.field}>
-                <label className={styles.label}>End Time</label>
-                <input
-                  type="time"
-                  name="end"
-                  value={form.end}
-                  onChange={handleChange}
-                  className={styles.input}
-                  required
-                />
-              </div>
+
+            {/* ── Step 1: Date ─────────────────────────────────────────── */}
+            <div className={styles.field}>
+              <label className={styles.label}>Select Date</label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => { setDate(e.target.value); setSelectedStart(null) }}
+                className={styles.input}
+                min={today}
+                required
+              />
             </div>
 
-            {/* Case Description */}
+            {/* ── Step 2: Duration ─────────────────────────────────────── */}
+            {date && (
+              <div className={styles.field}>
+                <label className={styles.label}>Duration</label>
+                <div className={styles.durationRow}>
+                  {DURATIONS.map(({ label, slots }) => (
+                    <button
+                      key={slots}
+                      type="button"
+                      className={`${styles.durationBtn} ${duration === slots ? styles.durationBtnActive : ''}`}
+                      onClick={() => { setDuration(slots); setSelectedStart(null) }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Step 3: Available slots grid ─────────────────────────── */}
+            {date && (
+              <div className={styles.field}>
+                <label className={styles.label}>
+                  Available Slots
+                  {selectedStart && endTime && (
+                    <span className={styles.selectedRange}> — {selectedStart} to {endTime}</span>
+                  )}
+                </label>
+
+                {loadingSlots && (
+                  <p className={styles.slotsLoading}>Loading available slots…</p>
+                )}
+
+                {slotsError && !loadingSlots && (
+                  <p className={styles.slotsError}>{slotsError}</p>
+                )}
+
+                {!loadingSlots && availableSlots.length > 0 && (
+                  <div className={styles.slotsGrid}>
+                    {availableSlots.map((slot) => {
+                      const isValid    = validStartSlots.some((s) => s.start === slot.start)
+                      const isSelected = selectedStart === slot.start
+                      // Highlight slots that are part of the selected range
+                      const inRange    = selectedStart && endTime
+                        ? timeToMinutes(slot.start) >= timeToMinutes(selectedStart) &&
+                          timeToMinutes(slot.end)   <= timeToMinutes(endTime)
+                        : false
+
+                      return (
+                        <button
+                          key={slot.start}
+                          type="button"
+                          disabled={!isValid}
+                          onClick={() => setSelectedStart(isSelected ? null : slot.start)}
+                          className={`
+                            ${styles.slotBtn}
+                            ${isSelected  ? styles.slotBtnSelected : ''}
+                            ${inRange && !isSelected ? styles.slotBtnInRange : ''}
+                            ${!isValid    ? styles.slotBtnBooked   : ''}
+                          `}
+                        >
+                          {slot.start}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {!loadingSlots && !slotsError && availableSlots.length === 0 && date && (
+                  <p className={styles.slotsError}>
+                    No availability set for this date. Try a different date.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* ── Fee summary ───────────────────────────────────────────── */}
+            {selectedStart && endTime && (
+              <div className={styles.feeSummary}>
+                <span>🕐 {selectedStart} – {endTime} ({DURATIONS.find(d => d.slots === duration)?.label})</span>
+                <span className={styles.feeAmount}>₹{totalFee}</span>
+              </div>
+            )}
+
+            {/* ── Case Description ──────────────────────────────────────── */}
             <div className={styles.field}>
-              <label className={styles.label}>Case Description <span className={styles.optional}>(optional)</span></label>
+              <label className={styles.label}>
+                Case Description <span className={styles.optional}>(optional)</span>
+              </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Briefly describe your legal issue so the expert can prepare..."
+                placeholder="Briefly describe your legal issue so the expert can prepare…"
                 className={styles.textarea}
                 maxLength={2000}
                 rows={3}
@@ -208,9 +332,11 @@ export default function ExpertCard({ expert }) {
               <span className={styles.charCount}>{description.length}/2000</span>
             </div>
 
-            {/* Document Upload */}
+            {/* ── Document Upload ───────────────────────────────────────── */}
             <div className={styles.field}>
-              <label className={styles.label}>Attach Documents <span className={styles.optional}>(optional — max {MAX_FILES} files, {MAX_SIZE_MB}MB each)</span></label>
+              <label className={styles.label}>
+                Attach Documents <span className={styles.optional}>(optional — max {MAX_FILES} files, {MAX_SIZE_MB}MB each)</span>
+              </label>
               <label className={styles.fileLabel}>
                 <input
                   type="file"
@@ -238,14 +364,23 @@ export default function ExpertCard({ expert }) {
               )}
             </div>
 
+            {/* ── Submit ───────────────────────────────────────────────── */}
             <div className={styles.formActions}>
               <p className={styles.feeNote}>
-                Consultation fee: <strong>₹{expert.consultationFee}</strong>
+                {selectedStart && endTime
+                  ? <>Total: <strong>₹{totalFee}</strong> for {DURATIONS.find(d => d.slots === duration)?.label}</>
+                  : <>Fee: <strong>₹{feePerSlot}</strong> per 30 min</>
+                }
               </p>
-              <button type="submit" className={styles.submitBtn} disabled={submitting}>
-                {submitting ? 'Booking...' : 'Confirm Booking'}
+              <button
+                type="submit"
+                className={styles.submitBtn}
+                disabled={submitting || !selectedStart}
+              >
+                {submitting ? 'Booking…' : 'Confirm Booking'}
               </button>
             </div>
+
           </form>
         </div>
       )}

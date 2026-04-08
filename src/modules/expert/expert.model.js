@@ -95,6 +95,10 @@ const expertSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    sanadDocument: {
+      type: String, // file path served at /uploads/sanad/<filename>
+      default: null,
+    },
     isVerified: {
       type: Boolean,
       default: false,
