@@ -564,6 +564,36 @@
   font-style: italic;
 }
 
+.sanadRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+
+.sanadLink {
+  font-size: 13px;
+  font-weight: 600;
+  color: #b8922a;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.15s;
+}
+
+.sanadLink:hover {
+  color: #8a6a1e;
+}
+
+.sanadMissing {
+  font-size: 13px;
+  color: #9ca3af;
+  font-style: italic;
+}
+
 .rejectionNote {
   background: #fef2f2;
   border: 1px solid #fecaca;

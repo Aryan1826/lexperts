@@ -670,6 +670,23 @@ export default function AdminPanel() {
                         </p>
                       )}
 
+                      {/* Sanad / Credential Document */}
+                      <div className={styles.sanadRow}>
+                        <span className={styles.metaLabel}>Sanad Document</span>
+                        {expert.sanadDocument ? (
+                          <a
+                            href={`http://localhost:5001${expert.sanadDocument}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.sanadLink}
+                          >
+                            📄 View Uploaded Document
+                          </a>
+                        ) : (
+                          <span className={styles.sanadMissing}>⚠ No document uploaded yet</span>
+                        )}
+                      </div>
+
                       {expert.verificationStatus === 'rejected' && expert.rejectionReason && (
                         <div className={styles.rejectionNote}>
                           <strong>Rejection reason:</strong> {expert.rejectionReason}
