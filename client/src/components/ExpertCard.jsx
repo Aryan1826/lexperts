@@ -1,8 +1,8 @@
 // src/components/ExpertCard.jsx
 
 import { useState, useEffect } from 'react'
-import { createBooking } from '../services/booking.service'
 import { getAvailableSlots } from '../services/expert.service'
+import { createRazorpayOrder, verifyRazorpayPayment, loadRazorpayScript } from '../services/payment.service'
 import styles from './ExpertCard.module.css'
 
 const today = new Date().toISOString().split('T')[0]
@@ -133,13 +133,13 @@ export default function ExpertCard({ expert }) {
     isRangeAvailable(availableSlots, s.start, duration)
   )
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
+  // ── Submit — opens Razorpay popup ─────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setSuccess('')
 
-    if (!date) { setError('Please select a date.'); return }
+    if (!date)          { setError('Please select a date.'); return }
     if (!selectedStart) { setError('Please select a time slot.'); return }
     if (!isRangeAvailable(availableSlots, selectedStart, duration)) {
       setError('Selected slot range is no longer available. Please pick another.')
@@ -147,21 +147,71 @@ export default function ExpertCard({ expert }) {
     }
 
     setSubmitting(true)
+
     try {
-      await createBooking(
-        { expertId: expert._id, date, slot: { start: selectedStart, end: endTime } },
-        files,
-        description
-      )
-      setSuccess('Booking request sent! The expert will confirm shortly.')
-      setDate('')
-      setSelectedStart(null)
-      setDuration(1)
-      setAvailableSlots([])
-      setTimeout(() => { setShowForm(false); setSuccess('') }, 2500)
+      // ── Step 1: create Razorpay order on backend ────────────────────────────
+      const { orderId, amount, currency, keyId } = await createRazorpayOrder({
+        expertId: expert._id,
+        date,
+        slot: { start: selectedStart, end: endTime },
+        duration,
+      })
+
+      // ── Step 2: load Razorpay checkout.js if not already loaded ────────────
+      await loadRazorpayScript()
+
+      // ── Step 3: open Razorpay popup ─────────────────────────────────────────
+      const rzp = new window.Razorpay({
+        key:         keyId,
+        amount:      amount * 100,   // paise
+        currency,
+        name:        'LExperts',
+        description: `Consultation with ${user?.name || 'Expert'} · ${DURATIONS.find(d => d.slots === duration)?.label}`,
+        order_id:    orderId,
+        theme:       { color: '#b8922a' },
+
+        // ── Step 4: on successful payment, verify on backend ─────────────────
+        handler: async (response) => {
+          try {
+            await verifyRazorpayPayment({
+              razorpay_order_id:   response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature:  response.razorpay_signature,
+              expertId:      expert._id,
+              date,
+              slot:          { start: selectedStart, end: endTime },
+              duration,
+              caseDescription: description,
+            })
+            setSuccess('✓ Payment successful! Your booking request has been sent to the expert.')
+            // Reset form state
+            setDate('')
+            setSelectedStart(null)
+            setDuration(1)
+            setAvailableSlots([])
+            setDescription('')
+            setFiles([])
+            setTimeout(() => { setShowForm(false); setSuccess('') }, 3000)
+          } catch (verifyErr) {
+            setError(verifyErr.response?.data?.message || 'Payment verification failed. Contact support.')
+          } finally {
+            setSubmitting(false)
+          }
+        },
+
+        modal: {
+          // User closed the popup without paying
+          ondismiss: () => {
+            setError('Payment was cancelled. Your slot is still available.')
+            setSubmitting(false)
+          },
+        },
+      })
+
+      rzp.open()
+
     } catch (err) {
-      setError(err.response?.data?.message || 'Booking failed. Please try again.')
-    } finally {
+      setError(err.response?.data?.message || 'Could not initiate payment. Please try again.')
       setSubmitting(false)
     }
   }
@@ -377,7 +427,7 @@ export default function ExpertCard({ expert }) {
                 className={styles.submitBtn}
                 disabled={submitting || !selectedStart}
               >
-                {submitting ? 'Booking…' : 'Confirm Booking'}
+                {submitting ? 'Opening payment…' : `Pay ₹${totalFee} & Book`}
               </button>
             </div>
 
