@@ -8,9 +8,13 @@ const AppError = require('../../utils/AppError');
 const logger = require('../../utils/logger');
 const {
   sendBookingCreatedEmail,
-  sendBookingConfirmedEmail,
   sendBookingCancelledEmail,
+  sendPaymentRequestEmail,
 } = require('../../utils/emailService');
+
+const PLATFORM_FEE_PER_SLOT = 70;  // ₹70 per 30-min unit
+const GST_RATE = 0.18;              // 18% GST on platform fee (placeholder)
+const PAYMENT_DEADLINE_MINUTES = 30;
 
 // ─── VALID_DAYS for expert availability ────────────────────────────────────
 const VALID_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -295,50 +299,60 @@ const getBookingById = async (bookingId, userId, userRole) => {
 };
 
 /**
- * Confirm a pending booking using atomic operation.
- * Optionally saves the expert's notes/response to the client.
+ * Expert confirms a pending booking.
+ * Status → 'payment_pending'. Sets a 30-min payment deadline.
+ * Fee breakdown (platform fee + GST) is calculated and stored.
+ * Client receives a "Pay now within 30 min" email.
  */
 const confirmBooking = async (bookingId, userId, expertNotes) => {
   const expert = await Expert.findOne({ userId });
   if (!expert) throw new AppError('Expert profile not found', 404);
 
-  const updateFields = { status: 'confirmed' };
+  // Calculate fee breakdown
+  const booking = await Booking.findOne({ _id: bookingId, expertId: expert._id });
+  if (!booking) throw new AppError('Booking not found', 404);
+  if (booking.status !== 'pending') {
+    throw new AppError(`Cannot confirm a booking with status: ${booking.status}`, 400);
+  }
+
+  const durationUnits  = booking.durationUnits || 1;
+  const expertFeeTotal = durationUnits * booking.consultationFeeAtBooking;
+  const platformFee    = durationUnits * PLATFORM_FEE_PER_SLOT;
+  const gstAmount      = Math.round(platformFee * GST_RATE);
+  const totalAmount    = expertFeeTotal + platformFee + gstAmount;
+  const paymentDeadline = new Date(Date.now() + PAYMENT_DEADLINE_MINUTES * 60 * 1000);
+
+  const updateFields = {
+    status: 'payment_pending',
+    paymentDeadline,
+    platformFee,
+    gstAmount,
+    totalAmount,
+  };
   if (expertNotes && expertNotes.trim()) {
     updateFields.expertNotes = expertNotes.trim();
   }
 
-  // Use findOneAndUpdate for atomic status transition
-  const booking = await Booking.findOneAndUpdate(
-    {
-      _id: bookingId,
-      expertId: expert._id,
-      status: 'pending', // Only update if currently pending
-    },
+  const updated = await Booking.findOneAndUpdate(
+    { _id: bookingId, expertId: expert._id, status: 'pending' },
     { $set: updateFields },
     { new: true, runValidators: true }
   )
     .populate('clientId', 'name email')
     .populate('expertId');
 
-  if (!booking) {
-    const existingBooking = await Booking.findById(bookingId);
-    if (!existingBooking) throw new AppError('Booking not found', 404);
-    if (existingBooking.expertId.toString() !== expert._id.toString()) {
-      throw new AppError('This booking does not belong to your expert account', 403);
-    }
-    throw new AppError(`Cannot confirm a booking with status: ${existingBooking.status}`, 400);
-  }
+  if (!updated) throw new AppError('Booking update failed', 500);
 
-  // Send confirmation email to client — fire and forget
+  // Send "Pay within 30 min" email to client — fire and forget
   const expertUser = await User.findById(userId).select('name').lean();
-  sendBookingConfirmedEmail(
-    booking,
-    booking.clientId?.email,
-    booking.clientId?.name,
+  sendPaymentRequestEmail(
+    updated,
+    updated.clientId?.email,
+    updated.clientId?.name,
     expertUser?.name || 'Your Expert'
   ).catch(() => {});
 
-  return booking;
+  return updated;
 };
 
 /**

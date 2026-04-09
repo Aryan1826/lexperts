@@ -1,8 +1,8 @@
 // src/components/ExpertCard.jsx
 
 import { useState, useEffect } from 'react'
+import { createBooking } from '../services/booking.service'
 import { getAvailableSlots } from '../services/expert.service'
-import { createRazorpayOrder, verifyRazorpayPayment, loadRazorpayScript } from '../services/payment.service'
 import styles from './ExpertCard.module.css'
 
 const today = new Date().toISOString().split('T')[0]
@@ -133,7 +133,15 @@ export default function ExpertCard({ expert }) {
     isRangeAvailable(availableSlots, s.start, duration)
   )
 
-  // ── Submit — opens Razorpay popup ─────────────────────────────────────────
+  // ── Fee breakdown (expert fee + platform fee + GST) ───────────────────────
+  const PLATFORM_FEE_PER_SLOT = 70   // ₹70 per 30-min unit
+  const GST_RATE = 0.18              // 18% GST on platform fee (placeholder)
+  const expertFeeTotal   = duration * feePerSlot
+  const platformFeeTotal = duration * PLATFORM_FEE_PER_SLOT
+  const gstTotal         = Math.round(platformFeeTotal * GST_RATE)
+  const grandTotal       = expertFeeTotal + platformFeeTotal + gstTotal
+
+  // ── Submit ─────────────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
@@ -147,71 +155,23 @@ export default function ExpertCard({ expert }) {
     }
 
     setSubmitting(true)
-
     try {
-      // ── Step 1: create Razorpay order on backend ────────────────────────────
-      const { orderId, amount, currency, keyId } = await createRazorpayOrder({
-        expertId: expert._id,
-        date,
-        slot: { start: selectedStart, end: endTime },
-        duration,
-      })
-
-      // ── Step 2: load Razorpay checkout.js if not already loaded ────────────
-      await loadRazorpayScript()
-
-      // ── Step 3: open Razorpay popup ─────────────────────────────────────────
-      const rzp = new window.Razorpay({
-        key:         keyId,
-        amount:      amount * 100,   // paise
-        currency,
-        name:        'LExperts',
-        description: `Consultation with ${user?.name || 'Expert'} · ${DURATIONS.find(d => d.slots === duration)?.label}`,
-        order_id:    orderId,
-        theme:       { color: '#b8922a' },
-
-        // ── Step 4: on successful payment, verify on backend ─────────────────
-        handler: async (response) => {
-          try {
-            await verifyRazorpayPayment({
-              razorpay_order_id:   response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature:  response.razorpay_signature,
-              expertId:      expert._id,
-              date,
-              slot:          { start: selectedStart, end: endTime },
-              duration,
-              caseDescription: description,
-            })
-            setSuccess('✓ Payment successful! Your booking request has been sent to the expert.')
-            // Reset form state
-            setDate('')
-            setSelectedStart(null)
-            setDuration(1)
-            setAvailableSlots([])
-            setDescription('')
-            setFiles([])
-            setTimeout(() => { setShowForm(false); setSuccess('') }, 3000)
-          } catch (verifyErr) {
-            setError(verifyErr.response?.data?.message || 'Payment verification failed. Contact support.')
-          } finally {
-            setSubmitting(false)
-          }
-        },
-
-        modal: {
-          // User closed the popup without paying
-          ondismiss: () => {
-            setError('Payment was cancelled. Your slot is still available.')
-            setSubmitting(false)
-          },
-        },
-      })
-
-      rzp.open()
-
+      await createBooking(
+        { expertId: expert._id, date, slot: { start: selectedStart, end: endTime }, duration },
+        files,
+        description
+      )
+      setSuccess('Booking request sent! The expert will review and confirm shortly. You will receive a payment link by email once confirmed.')
+      setDate('')
+      setSelectedStart(null)
+      setDuration(1)
+      setAvailableSlots([])
+      setDescription('')
+      setFiles([])
+      setTimeout(() => { setShowForm(false); setSuccess('') }, 4000)
     } catch (err) {
-      setError(err.response?.data?.message || 'Could not initiate payment. Please try again.')
+      setError(err.response?.data?.message || 'Booking failed. Please try again.')
+    } finally {
       setSubmitting(false)
     }
   }
@@ -358,11 +318,27 @@ export default function ExpertCard({ expert }) {
               </div>
             )}
 
-            {/* ── Fee summary ───────────────────────────────────────────── */}
+            {/* ── Fee breakdown ─────────────────────────────────────────── */}
             {selectedStart && endTime && (
               <div className={styles.feeSummary}>
-                <span>🕐 {selectedStart} – {endTime} ({DURATIONS.find(d => d.slots === duration)?.label})</span>
-                <span className={styles.feeAmount}>₹{totalFee}</span>
+                <div style={{ fontSize: '0.8125rem', color: 'var(--ink-soft)', marginBottom: '8px' }}>
+                  🕐 {selectedStart} – {endTime} · {DURATIONS.find(d => d.slots === duration)?.label}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.8125rem', color: 'var(--ink-soft)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Expert fee</span><span>₹{expertFeeTotal}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Platform fee</span><span>₹{platformFeeTotal}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink-muted)', fontSize: '0.75rem' }}>
+                    <span>GST @18% (on platform fee)</span><span>₹{gstTotal}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--gold-light)', paddingTop: '6px', marginTop: '2px' }}>
+                    <span style={{ fontWeight: 600, color: 'var(--ink)' }}>Total</span>
+                    <span className={styles.feeAmount}>₹{grandTotal}</span>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -417,9 +393,9 @@ export default function ExpertCard({ expert }) {
             {/* ── Submit ───────────────────────────────────────────────── */}
             <div className={styles.formActions}>
               <p className={styles.feeNote}>
-                {selectedStart && endTime
-                  ? <>Total: <strong>₹{totalFee}</strong> for {DURATIONS.find(d => d.slots === duration)?.label}</>
-                  : <>Fee: <strong>₹{feePerSlot}</strong> per 30 min</>
+                {selectedStart
+                  ? <>Payment of <strong>₹{grandTotal}</strong> due after expert confirms</>
+                  : <>Expert fee <strong>₹{feePerSlot}</strong>/30 min + ₹{PLATFORM_FEE_PER_SLOT} platform fee</>
                 }
               </p>
               <button
@@ -427,7 +403,7 @@ export default function ExpertCard({ expert }) {
                 className={styles.submitBtn}
                 disabled={submitting || !selectedStart}
               >
-                {submitting ? 'Opening payment…' : `Pay ₹${totalFee} & Book`}
+                {submitting ? 'Sending request…' : 'Request Booking'}
               </button>
             </div>
 

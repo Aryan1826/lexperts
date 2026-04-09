@@ -3,45 +3,34 @@
 import api from './api'
 
 /**
- * Step 1 — Ask backend to create a Razorpay order.
- * Returns { orderId, amount, currency, keyId }
+ * Step 1 — Create a Razorpay order for an existing payment_pending booking.
+ * Returns { orderId, amount, currency, keyId, expertName, breakdown }
  */
-export const createRazorpayOrder = async ({ expertId, date, slot, duration }) => {
-  const res = await api.post('/payments/create-order', { expertId, date, slot, duration })
+export const createRazorpayOrder = async ({ bookingId }) => {
+  const res = await api.post('/payments/create-order', { bookingId })
   return res.data.data
 }
 
 /**
- * Step 2 — Send Razorpay payment response to backend for HMAC verification.
- * Backend verifies signature and atomically creates the booking.
- * Returns { booking }
+ * Step 2 — Send Razorpay response to backend for HMAC verification + booking confirmation.
  */
 export const verifyRazorpayPayment = async ({
   razorpay_order_id,
   razorpay_payment_id,
   razorpay_signature,
-  expertId,
-  date,
-  slot,
-  duration,
-  caseDescription,
+  bookingId,
 }) => {
   const res = await api.post('/payments/verify', {
     razorpay_order_id,
     razorpay_payment_id,
     razorpay_signature,
-    expertId,
-    date,
-    slot,
-    duration,
-    caseDescription,
+    bookingId,
   })
   return res.data
 }
 
 /**
- * Dynamically loads the Razorpay checkout.js script.
- * Resolves immediately if already loaded.
+ * Dynamically loads Razorpay checkout.js. Resolves immediately if already loaded.
  */
 export const loadRazorpayScript = () =>
   new Promise((resolve, reject) => {

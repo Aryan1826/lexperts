@@ -33,7 +33,7 @@ const bookingSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'confirmed', 'cancelled'],
+      enum: ['pending', 'payment_pending', 'confirmed', 'cancelled', 'payment_expired'],
       default: 'pending',
     },
     cancellationReason: {
@@ -94,6 +94,14 @@ const bookingSchema = new mongoose.Schema(
       max: 8,
       default: 1,
     },
+    // ── Fee breakdown (set when expert confirms) ──────────────────────────────
+    platformFee: { type: Number, min: 0, default: 0 },
+    gstAmount:   { type: Number, min: 0, default: 0 },
+    totalAmount: { type: Number, min: 0, default: 0 },
+
+    // Deadline by which client must pay (set when expert confirms, 30 min window)
+    paymentDeadline: { type: Date, default: null },
+
     // ── Payment ──────────────────────────────────────────────────────────────
     paymentStatus: {
       type: String,
