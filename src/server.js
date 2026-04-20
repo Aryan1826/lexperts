@@ -25,6 +25,10 @@ const startServer = async () => {
   server = app.listen(PORT, () => {
     logger.info(`LExperts API running in ${process.env.NODE_ENV} mode on port ${PORT}`);
   });
+
+  // Start background jobs
+  const { startPaymentExpiryJob } = require('./utils/scheduler');
+  startPaymentExpiryJob();
 };
 
 const shutdown = async (signal) => {

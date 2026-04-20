@@ -32,7 +32,14 @@ export default function Navbar() {
     return () => { document.body.style.overflow = '' }
   }, [menuOpen])
 
-  const navLinks = isExpert
+  const isAdmin = user?.role === 'admin'
+
+  const navLinks = isAdmin
+    ? [
+        { to: '/dashboard', label: 'Dashboard' },
+        { to: '/admin', label: 'Admin Panel' },
+      ]
+    : isExpert
     ? [
         { to: '/dashboard', label: 'Dashboard' },
         { to: '/expert-dashboard', label: 'My Bookings' },
@@ -101,7 +108,7 @@ export default function Navbar() {
         <div className={styles.mobileDivider} />
         <div className={styles.mobileUser}>
           <span className={styles.mobileUserName}>{user?.name}</span>
-          <span className={styles.mobileUserRole}>{isExpert ? 'Expert' : 'Client'}</span>
+          <span className={styles.mobileUserRole}>{isAdmin ? 'Admin' : isExpert ? 'Expert' : 'Client'}</span>
         </div>
         <button
           className={styles.mobileLogout}

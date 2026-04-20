@@ -159,7 +159,120 @@ const templates = {
       }
     `),
 
-  // Sent when user requests a password reset
+  // Sent to client when expert confirms — "pay within 30 min"
+  paymentRequest: ({ clientName, expertName, date, slotStart, slotEnd, expertFee, platformFee, gstAmount, totalAmount, deadlineTime, myBookingsUrl }) =>
+    baseTemplate(`
+      <p class="title">Expert Accepted Your Booking! ⚡</p>
+      <p class="subtitle">Hi <strong>${clientName}</strong>, <strong>${expertName}</strong> has accepted your consultation request. Please complete the payment within <strong>30 minutes</strong> to confirm your slot — otherwise it will be released.</p>
+      <div class="detail-box">
+        <div class="detail-row">
+          <span class="detail-label">Expert</span>
+          <span class="detail-value">${expertName}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Date</span>
+          <span class="detail-value">${date}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Time</span>
+          <span class="detail-value">${slotStart} – ${slotEnd}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Expert Fee</span>
+          <span class="detail-value">₹${expertFee}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Platform Fee</span>
+          <span class="detail-value">₹${platformFee}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">GST (18% on platform fee)</span>
+          <span class="detail-value">₹${gstAmount}</span>
+        </div>
+        <div class="detail-row" style="font-weight:700;font-size:15px;">
+          <span class="detail-label" style="color:#0f0e0c;">Total Amount</span>
+          <span class="detail-value" style="color:#b8922a;">₹${totalAmount}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Pay Before</span>
+          <span class="detail-value" style="color:#e65100;">${deadlineTime}</span>
+        </div>
+      </div>
+      <div style="text-align:center;margin:24px 0;">
+        <a href="${myBookingsUrl}" class="btn">Pay Now — ₹${totalAmount}</a>
+      </div>
+      <p style="font-size:13px;color:#8a8780;text-align:center;">Go to My Bookings → find this booking → click "Pay Now"</p>
+    `),
+
+  // Sent to client after payment is verified — booking confirmed
+  paymentConfirmedClient: ({ clientName, expertName, date, slotStart, slotEnd, totalAmount, paymentId }) =>
+    baseTemplate(`
+      <p class="title">Payment Confirmed — You're Booked! ✅</p>
+      <p class="subtitle">Hi <strong>${clientName}</strong>, your payment was successful and your consultation with <strong>${expertName}</strong> is now confirmed.</p>
+      <div class="detail-box">
+        <div class="detail-row">
+          <span class="detail-label">Expert</span>
+          <span class="detail-value">${expertName}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Date</span>
+          <span class="detail-value">${date}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Time</span>
+          <span class="detail-value">${slotStart} – ${slotEnd}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Amount Paid</span>
+          <span class="detail-value" style="color:#b8922a;">₹${totalAmount}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Payment ID</span>
+          <span class="detail-value" style="font-size:12px;">${paymentId}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Status</span>
+          <span class="detail-value"><span class="badge badge-confirmed">Confirmed</span></span>
+        </div>
+      </div>
+      <p style="font-size:14px;color:#8a8780;">Please be available at the scheduled time. Save this email as your booking receipt.</p>
+    `),
+
+  // Sent to expert after client pays — booking confirmed
+  paymentConfirmedExpert: ({ expertName, clientName, date, slotStart, slotEnd, expertFee, paymentId }) =>
+    baseTemplate(`
+      <p class="title">Booking Confirmed — Payment Received 💰</p>
+      <p class="subtitle">Hi <strong>${expertName}</strong>, <strong>${clientName}</strong> has completed the payment. Your consultation is now confirmed.</p>
+      <div class="detail-box">
+        <div class="detail-row">
+          <span class="detail-label">Client</span>
+          <span class="detail-value">${clientName}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Date</span>
+          <span class="detail-value">${date}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Time</span>
+          <span class="detail-value">${slotStart} – ${slotEnd}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Your Consultation Fee</span>
+          <span class="detail-value" style="color:#b8922a;">₹${expertFee}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Payment ID</span>
+          <span class="detail-value" style="font-size:12px;">${paymentId}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Status</span>
+          <span class="detail-value"><span class="badge badge-confirmed">Confirmed</span></span>
+        </div>
+      </div>
+      <p style="font-size:14px;color:#8a8780;">Please be prepared for the consultation at the scheduled time.</p>
+    `),
+
+  // Sent to new user on registration
   passwordReset: ({ name, resetUrl, expiresInMinutes }) =>
     baseTemplate(`
       <p class="title">Reset Your Password 🔐</p>
@@ -325,10 +438,87 @@ const sendPasswordResetEmail = async (user, resetToken) => {
   });
 };
 
+const sendPaymentRequestEmail = async (booking, clientEmail, clientName, expertName) => {
+  const date = booking.date
+    ? new Date(booking.date).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+    : 'N/A';
+  const deadlineTime = booking.paymentDeadline
+    ? new Date(booking.paymentDeadline).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+    : 'soon';
+  const durationUnits = booking.durationUnits || 1;
+  const expertFee = durationUnits * (booking.consultationFeeAtBooking || 0);
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+
+  return sendEmail({
+    to: clientEmail,
+    subject: `Action Required: Pay within 30 min to confirm your slot — LExperts`,
+    html: templates.paymentRequest({
+      clientName,
+      expertName,
+      date,
+      slotStart:    booking.slot?.start || 'N/A',
+      slotEnd:      booking.slot?.end   || 'N/A',
+      expertFee,
+      platformFee:  booking.platformFee  || 0,
+      gstAmount:    booking.gstAmount    || 0,
+      totalAmount:  booking.totalAmount  || 0,
+      deadlineTime,
+      myBookingsUrl: `${clientUrl}/my-bookings`,
+    }),
+  });
+};
+
+const sendPaymentConfirmedClientEmail = async (booking, clientEmail, clientName, expertName) => {
+  const date = booking.date
+    ? new Date(booking.date).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+    : 'N/A';
+  const durationUnits = booking.durationUnits || 1;
+  const expertFee = durationUnits * (booking.consultationFeeAtBooking || 0);
+
+  return sendEmail({
+    to: clientEmail,
+    subject: `Booking Confirmed — ₹${booking.totalAmount || 0} Paid Successfully — LExperts`,
+    html: templates.paymentConfirmedClient({
+      clientName,
+      expertName,
+      date,
+      slotStart:   booking.slot?.start || 'N/A',
+      slotEnd:     booking.slot?.end   || 'N/A',
+      totalAmount: booking.totalAmount  || 0,
+      paymentId:   booking.razorpayPaymentId || 'N/A',
+    }),
+  });
+};
+
+const sendPaymentConfirmedExpertEmail = async (booking, expertEmail, expertName, clientName) => {
+  const date = booking.date
+    ? new Date(booking.date).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+    : 'N/A';
+  const durationUnits = booking.durationUnits || 1;
+  const expertFee = durationUnits * (booking.consultationFeeAtBooking || 0);
+
+  return sendEmail({
+    to: expertEmail,
+    subject: `Payment Received — Consultation Confirmed — LExperts`,
+    html: templates.paymentConfirmedExpert({
+      expertName,
+      clientName,
+      date,
+      slotStart: booking.slot?.start || 'N/A',
+      slotEnd:   booking.slot?.end   || 'N/A',
+      expertFee,
+      paymentId: booking.razorpayPaymentId || 'N/A',
+    }),
+  });
+};
+
 module.exports = {
   sendBookingCreatedEmail,
   sendBookingConfirmedEmail,
   sendBookingCancelledEmail,
   sendWelcomeEmail,
   sendPasswordResetEmail,
+  sendPaymentRequestEmail,
+  sendPaymentConfirmedClientEmail,
+  sendPaymentConfirmedExpertEmail,
 };

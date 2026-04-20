@@ -114,6 +114,8 @@ app.get('/health', (req, res) => {
 app.use('/api/v1/auth', require('./modules/auth/auth.routes'));
 app.use('/api/v1/experts', require('./modules/expert/expert.routes'));
 app.use('/api/v1/bookings', require('./modules/booking/booking.routes'));
+app.use('/api/v1/payments', require('./modules/payment/payment.routes'));
+app.use('/api/v1/admin', require('./modules/admin/admin.routes'));
 
 // ─── Error handlers (must be last) ───────────────────────────────────────────
 app.use(notFound);

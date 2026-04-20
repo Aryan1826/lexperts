@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import Navbar from '../components/Navbar'
 import ErrorBoundary from '../components/ErrorBoundary'
 import { ProfileFormSkeleton } from '../components/LoadingSkeleton'
-import { createProfile, getMyProfile, updateProfile } from '../services/expert.service'
+import { createProfile, getMyProfile, updateProfile, uploadSanad } from '../services/expert.service'
 import styles from './ExpertProfile.module.css'
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -36,6 +36,11 @@ export default function ExpertProfile() {
   const [error, setError] = useState('')
   const [isEditing, setIsEditing] = useState(false)
   const [profileId, setProfileId] = useState(null)
+  // Sanad upload state
+  const [sanadFile, setSanadFile] = useState(null)
+  const [sanadUploading, setSanadUploading] = useState(false)
+  const [sanadCurrent, setSanadCurrent] = useState(null)
+  const [verificationStatus, setVerificationStatus] = useState('pending')
 
   useEffect(() => {
     fetchProfile()
@@ -54,6 +59,8 @@ export default function ExpertProfile() {
           bio: data.bio || '',
         })
         setAvailability(data.availability || [])
+        setSanadCurrent(data.sanadDocument || null)
+        setVerificationStatus(data.verificationStatus || 'pending')
         setIsEditing(true)
       }
     } catch {
@@ -266,7 +273,7 @@ export default function ExpertProfile() {
                 {/* Consultation Fee */}
                 <div className={styles.formGroup}>
                   <label htmlFor="consultationFee" className={styles.label}>
-                    Consultation Fee (₹) <span className={styles.required}>*</span>
+                    Fee per 30-minute slot (₹) <span className={styles.required}>*</span>
                   </label>
                   <input
                     type="number"
@@ -280,7 +287,9 @@ export default function ExpertProfile() {
                     className={styles.input}
                     required
                   />
-                  <small className={styles.hint}>Per consultation fee in Indian Rupees</small>
+                  <small className={styles.hint}>
+                    This is your fee per 30-minute unit. Clients booking 1 hour will pay ₹{(parseFloat(form.consultationFee) || 0) * 2}.
+                  </small>
                 </div>
 
                 {/* Bio */}
@@ -380,6 +389,96 @@ export default function ExpertProfile() {
                   {loading ? 'Saving...' : isEditing ? 'Update Profile' : 'Create Profile'}
                 </button>
               </form>
+
+              {/* ── Sanad / Credential Upload (only after profile exists) ── */}
+              {isEditing && (
+                <div style={{
+                  marginTop: '32px',
+                  background: '#fafafa',
+                  border: '1px solid #e0e0e0',
+                  borderRadius: '10px',
+                  padding: '24px',
+                }}>
+                  <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '18px', margin: '0 0 6px' }}>
+                    Sanad / Enrollment Certificate
+                  </h3>
+                  <p style={{ color: 'var(--ink-muted)', fontSize: '14px', margin: '0 0 16px', lineHeight: 1.5 }}>
+                    Upload your Bar Council enrollment certificate (Sanad). Our admin team will review and verify your profile. Only verified experts are visible to clients.
+                  </p>
+
+                  {/* Current verification status */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <span style={{
+                      display: 'inline-block',
+                      padding: '4px 14px',
+                      borderRadius: '20px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      background: verificationStatus === 'approved' ? '#e8f5ee' : verificationStatus === 'rejected' ? '#fef2f2' : '#fff8e1',
+                      color: verificationStatus === 'approved' ? '#2e7d32' : verificationStatus === 'rejected' ? '#c62828' : '#e65100',
+                    }}>
+                      {verificationStatus === 'approved' ? '✓ Verified' : verificationStatus === 'rejected' ? '✗ Rejected' : '⏳ Pending Review'}
+                    </span>
+                    {sanadCurrent && (
+                      <a
+                        href={`http://localhost:5001${sanadCurrent}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ marginLeft: '12px', fontSize: '13px', color: 'var(--gold)', textDecoration: 'underline' }}
+                      >
+                        View uploaded document
+                      </a>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <label style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '8px',
+                      padding: '10px 18px', background: 'white', border: '1.5px solid #d0d0d0',
+                      borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: 500,
+                    }}>
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        style={{ display: 'none' }}
+                        onChange={(e) => setSanadFile(e.target.files[0] || null)}
+                      />
+                      📎 {sanadFile ? sanadFile.name : 'Choose file'}
+                    </label>
+
+                    <button
+                      type="button"
+                      disabled={!sanadFile || sanadUploading}
+                      onClick={async () => {
+                        if (!sanadFile) return
+                        setSanadUploading(true)
+                        try {
+                          const res = await uploadSanad(sanadFile)
+                          setSanadCurrent(res.data?.expert?.sanadDocument || sanadCurrent)
+                          setVerificationStatus('pending')
+                          setSanadFile(null)
+                          toast.success('Sanad uploaded! Admin will verify your profile shortly.')
+                        } catch (err) {
+                          toast.error(err.response?.data?.message || 'Upload failed. Please try again.')
+                        } finally {
+                          setSanadUploading(false)
+                        }
+                      }}
+                      style={{
+                        padding: '10px 20px', background: 'var(--ink)', color: 'white',
+                        border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '14px',
+                        cursor: sanadFile ? 'pointer' : 'not-allowed', opacity: sanadFile ? 1 : 0.5,
+                        fontFamily: 'var(--font-sans)',
+                      }}
+                    >
+                      {sanadUploading ? 'Uploading…' : 'Upload Sanad'}
+                    </button>
+                  </div>
+                  <p style={{ fontSize: '12px', color: '#aaa', marginTop: '8px' }}>
+                    PDF, JPG or PNG · max 5 MB
+                  </p>
+                </div>
+              )}
 
               {/* Helpful Tips */}
               <div className={styles.tipsBox}>

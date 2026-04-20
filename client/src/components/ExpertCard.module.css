@@ -355,6 +355,136 @@
 }
 .fileRemove:hover { color: var(--danger); }
 
+/* ── Duration selector ── */
+.durationRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.durationBtn {
+  height: 34px;
+  padding: 0 16px;
+  border: 1.5px solid var(--paper-border);
+  border-radius: var(--radius);
+  background: var(--paper);
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.durationBtn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(184, 146, 42, 0.04);
+}
+
+.durationBtnActive {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: var(--white);
+}
+
+.durationBtnActive:hover {
+  background: var(--gold-light);
+  border-color: var(--gold-light);
+  color: var(--white);
+}
+
+/* ── Slots grid ── */
+.slotsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 4px;
+}
+
+.slotBtn {
+  height: 34px;
+  min-width: 72px;
+  padding: 0 10px;
+  border: 1.5px solid var(--paper-border);
+  border-radius: var(--radius);
+  background: var(--paper);
+  font-size: 0.8125rem;
+  color: var(--ink);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.slotBtn:hover:not(:disabled) {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(184, 146, 42, 0.04);
+}
+
+.slotBtnSelected {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: var(--white);
+}
+
+.slotBtnSelected:hover {
+  background: var(--gold-light);
+  border-color: var(--gold-light);
+}
+
+.slotBtnInRange {
+  border-color: var(--gold-light);
+  background: var(--gold-pale);
+  color: var(--gold);
+}
+
+.slotBtnBooked {
+  border-color: var(--paper-border);
+  background: var(--paper-warm);
+  color: var(--ink-muted);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.slotsLoading {
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+  font-style: italic;
+  margin: 4px 0;
+}
+
+.slotsError {
+  font-size: 0.8125rem;
+  color: var(--danger);
+  margin: 4px 0;
+}
+
+.selectedRange {
+  font-weight: 400;
+  color: var(--gold);
+  font-size: 0.8125rem;
+}
+
+/* ── Fee summary ── */
+.feeSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--gold-pale);
+  border: 1px solid var(--gold-light);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+.feeAmount {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--gold);
+  font-family: var(--font-serif);
+}
+
 /* ── Mobile overrides ── */
 @media (max-width: 480px) {
   .cardMain { gap: 12px; padding: 16px; }

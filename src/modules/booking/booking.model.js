@@ -33,7 +33,7 @@ const bookingSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'confirmed', 'cancelled'],
+      enum: ['pending', 'payment_pending', 'confirmed', 'cancelled', 'payment_expired'],
       default: 'pending',
     },
     cancellationReason: {
@@ -80,6 +80,41 @@ const bookingSchema = new mongoose.Schema(
       type: Number,
       required: [true, 'Consultation fee at time of booking is required'],
       min: 0,
+    },
+    // Total fee paid = duration (in 30-min units) × consultationFeeAtBooking
+    totalFee: {
+      type: Number,
+      min: 0,
+      default: 0,
+    },
+    // Number of 30-min units booked (e.g. 2 = 1 hour)
+    durationUnits: {
+      type: Number,
+      min: 1,
+      max: 8,
+      default: 1,
+    },
+    // ── Fee breakdown (set when expert confirms) ──────────────────────────────
+    platformFee: { type: Number, min: 0, default: 0 },
+    gstAmount:   { type: Number, min: 0, default: 0 },
+    totalAmount: { type: Number, min: 0, default: 0 },
+
+    // Deadline by which client must pay (set when expert confirms, 30 min window)
+    paymentDeadline: { type: Date, default: null },
+
+    // ── Payment ──────────────────────────────────────────────────────────────
+    paymentStatus: {
+      type: String,
+      enum: ['unpaid', 'paid', 'refunded'],
+      default: 'unpaid',
+    },
+    razorpayOrderId: {
+      type: String,
+      default: null,
+    },
+    razorpayPaymentId: {
+      type: String,
+      default: null,
     },
   },
   {
