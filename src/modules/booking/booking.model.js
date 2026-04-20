@@ -116,6 +116,11 @@ const bookingSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    // Google Meet / Jitsi link — generated after payment confirmed
+    meetLink: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,

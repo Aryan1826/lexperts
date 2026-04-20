@@ -205,7 +205,7 @@ const templates = {
     `),
 
   // Sent to client after payment is verified — booking confirmed
-  paymentConfirmedClient: ({ clientName, expertName, date, slotStart, slotEnd, totalAmount, paymentId }) =>
+  paymentConfirmedClient: ({ clientName, expertName, date, slotStart, slotEnd, totalAmount, paymentId, meetLink }) =>
     baseTemplate(`
       <p class="title">Payment Confirmed — You're Booked! ✅</p>
       <p class="subtitle">Hi <strong>${clientName}</strong>, your payment was successful and your consultation with <strong>${expertName}</strong> is now confirmed.</p>
@@ -234,12 +234,23 @@ const templates = {
           <span class="detail-label">Status</span>
           <span class="detail-value"><span class="badge badge-confirmed">Confirmed</span></span>
         </div>
+        ${meetLink ? `
+        <div class="detail-row">
+          <span class="detail-label">Meeting Link</span>
+          <span class="detail-value"><a href="${meetLink}" style="color:#b8922a;">${meetLink}</a></span>
+        </div>` : ''}
       </div>
-      <p style="font-size:14px;color:#8a8780;">Please be available at the scheduled time. Save this email as your booking receipt.</p>
+      ${meetLink ? `
+      <div style="text-align:center;margin:24px 0;">
+        <a href="${meetLink}" class="btn">Join Meeting</a>
+      </div>
+      <p style="font-size:13px;color:#8a8780;text-align:center;">The meeting link is only active during your scheduled time slot.</p>
+      ` : ''}
+      <p style="font-size:14px;color:#8a8780;">Save this email as your booking receipt.</p>
     `),
 
   // Sent to expert after client pays — booking confirmed
-  paymentConfirmedExpert: ({ expertName, clientName, date, slotStart, slotEnd, expertFee, paymentId }) =>
+  paymentConfirmedExpert: ({ expertName, clientName, date, slotStart, slotEnd, expertFee, paymentId, meetLink }) =>
     baseTemplate(`
       <p class="title">Booking Confirmed — Payment Received 💰</p>
       <p class="subtitle">Hi <strong>${expertName}</strong>, <strong>${clientName}</strong> has completed the payment. Your consultation is now confirmed.</p>
@@ -268,7 +279,18 @@ const templates = {
           <span class="detail-label">Status</span>
           <span class="detail-value"><span class="badge badge-confirmed">Confirmed</span></span>
         </div>
+        ${meetLink ? `
+        <div class="detail-row">
+          <span class="detail-label">Meeting Link</span>
+          <span class="detail-value"><a href="${meetLink}" style="color:#b8922a;">${meetLink}</a></span>
+        </div>` : ''}
       </div>
+      ${meetLink ? `
+      <div style="text-align:center;margin:24px 0;">
+        <a href="${meetLink}" class="btn">Join Meeting</a>
+      </div>
+      <p style="font-size:13px;color:#8a8780;text-align:center;">The meeting link is only active during the scheduled time slot.</p>
+      ` : ''}
       <p style="font-size:14px;color:#8a8780;">Please be prepared for the consultation at the scheduled time.</p>
     `),
 
@@ -472,12 +494,10 @@ const sendPaymentConfirmedClientEmail = async (booking, clientEmail, clientName,
   const date = booking.date
     ? new Date(booking.date).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
     : 'N/A';
-  const durationUnits = booking.durationUnits || 1;
-  const expertFee = durationUnits * (booking.consultationFeeAtBooking || 0);
 
   return sendEmail({
     to: clientEmail,
-    subject: `Booking Confirmed — ₹${booking.totalAmount || 0} Paid Successfully — LExperts`,
+    subject: `Booking Confirmed — ₹${booking.totalAmount || 0} Paid — LExperts`,
     html: templates.paymentConfirmedClient({
       clientName,
       expertName,
@@ -486,6 +506,7 @@ const sendPaymentConfirmedClientEmail = async (booking, clientEmail, clientName,
       slotEnd:     booking.slot?.end   || 'N/A',
       totalAmount: booking.totalAmount  || 0,
       paymentId:   booking.razorpayPaymentId || 'N/A',
+      meetLink:    booking.meetLink || null,
     }),
   });
 };
@@ -508,6 +529,7 @@ const sendPaymentConfirmedExpertEmail = async (booking, expertEmail, expertName,
       slotEnd:   booking.slot?.end   || 'N/A',
       expertFee,
       paymentId: booking.razorpayPaymentId || 'N/A',
+      meetLink:  booking.meetLink || null,
     }),
   });
 };

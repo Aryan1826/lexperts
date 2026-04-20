@@ -47,6 +47,17 @@ function useCountdown(deadline) {
   return secondsLeft
 }
 
+// ── Meeting link time-lock helper ────────────────────────────────────────────
+function getMeetStatus(booking) {
+  if (!booking.meetLink || booking.status !== 'confirmed') return null
+  const slotStart = new Date(`${booking.date}T${booking.slot.start}:00`)
+  const slotEnd   = new Date(`${booking.date}T${booking.slot.end}:00`)
+  const now = new Date()
+  if (now < slotStart) return { state: 'upcoming', label: `Opens at ${booking.slot.start}` }
+  if (now > slotEnd)   return { state: 'ended',    label: 'Meeting ended' }
+  return { state: 'active', label: 'Join Meeting' }
+}
+
 // ── Individual booking countdown badge ───────────────────────────────────────
 function CountdownBadge({ deadline }) {
   const s = useCountdown(deadline)
@@ -431,6 +442,33 @@ export default function MyBookings() {
                     )}
 
                     <div className={styles.cardFooter}>
+                      {/* Join Meeting button — time-locked */}
+                      {(() => {
+                        const meet = getMeetStatus(booking)
+                        if (!meet) return null
+                        const active = meet.state === 'active'
+                        return (
+                          <a
+                            href={active ? booking.meetLink : undefined}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={!active ? (e) => e.preventDefault() : undefined}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '6px',
+                              height: '38px', padding: '0 20px', borderRadius: '6px',
+                              fontWeight: 700, fontSize: '14px', textDecoration: 'none',
+                              fontFamily: 'var(--font-sans)', transition: 'background 0.15s',
+                              background: active ? '#1a73e8' : '#e0e0e0',
+                              color: active ? 'white' : '#9e9e9e',
+                              cursor: active ? 'pointer' : 'not-allowed',
+                            }}
+                            title={!active ? meet.label : 'Join Google Meet'}
+                          >
+                            🎥 {meet.label}
+                          </a>
+                        )
+                      })()}
+
                       {/* Pay Now button */}
                       {booking.status === 'payment_pending' && (
                         <button
