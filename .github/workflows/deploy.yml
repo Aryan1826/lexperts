@@ -1,0 +1,74 @@
+name: 🚀 Deploy LExperts to EC2
+
+# ─── Triggers ────────────────────────────────────────────────────────────────
+on:
+  push:
+    branches: [main]        # auto-deploy on every push to main
+  workflow_dispatch:        # manual trigger from GitHub Actions UI
+
+# ─── Jobs ────────────────────────────────────────────────────────────────────
+jobs:
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # ── 1. Checkout code (used only for health-check URL below) ─────────────
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      # ── 2. SSH into EC2 and run deployment ──────────────────────────────────
+      - name: 🐳 Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          # Increase timeout for docker build (can take ~2 min)
+          command_timeout: 10m
+          script: |
+            set -e   # stop immediately on any error
+
+            echo "──────────────────────────────────────────────"
+            echo "📦  Navigating to project directory..."
+            echo "──────────────────────────────────────────────"
+            cd /home/ubuntu/lexperts
+
+            echo "⬇️  Pulling latest code from main..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "──────────────────────────────────────────────"
+            echo "🔨  Rebuilding Docker images..."
+            echo "──────────────────────────────────────────────"
+            docker compose down --remove-orphans
+            docker compose up -d --build
+
+            echo "──────────────────────────────────────────────"
+            echo "🧹  Pruning unused Docker images (free disk)..."
+            echo "──────────────────────────────────────────────"
+            docker image prune -f
+
+            echo "──────────────────────────────────────────────"
+            echo "📊  Container status:"
+            echo "──────────────────────────────────────────────"
+            docker compose ps
+
+            echo ""
+            echo "✅  Deployment script complete!"
+
+      # ── 3. Wait for app to be ready, then verify ────────────────────────────
+      - name: ⏳ Wait for containers to start
+        run: sleep 30
+
+      - name: 🏥 Health check
+        run: |
+          echo "Checking: http://${{ secrets.EC2_HOST }}/health"
+          curl --fail --silent --show-error \
+               --max-time 15 \
+               http://${{ secrets.EC2_HOST }}/health \
+          | python3 -m json.tool \
+          || (echo "❌ Health check FAILED — check EC2 logs" && exit 1)
+          echo ""
+          echo "✅ App is live at http://${{ secrets.EC2_HOST }}"

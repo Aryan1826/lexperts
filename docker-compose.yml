@@ -1,0 +1,90 @@
+version: "3.9"
+
+# ─── LExperts — Docker Compose ───────────────────────────────────────────────
+#
+#  Services:
+#    backend   → Node.js / Express  (port 5001, internal)
+#    frontend  → React + Nginx      (port 80, public)
+#
+#  Database: MongoDB Atlas (external — no container needed)
+#  Files:    uploads/ and logs/ stored in named Docker volumes (persist on restart)
+#
+#  How to run:
+#    docker compose up -d --build        ← build images + start
+#    docker compose down                 ← stop containers
+#    docker compose logs -f backend      ← live logs
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Backend: Node.js Express API ───────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: lexperts-backend
+    restart: unless-stopped
+
+    # Read all env vars from the .env file on the host (never committed to git)
+    env_file:
+      - ./backend/.env
+
+    # Expose to host for direct testing/debugging.
+    # In production you can remove this — all traffic goes through Nginx.
+    ports:
+      - "5001:5001"
+
+    # Named volumes — files survive container restarts and rebuilds
+    volumes:
+      - uploads_data:/app/uploads
+      - logs_data:/app/logs
+
+    networks:
+      - lexperts-net
+
+    # Compose waits for this to pass before starting frontend
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5001/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ── Frontend: React (Vite build) served by Nginx ───────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Nginx on the same host proxies /api → backend, so relative URL works
+        VITE_API_BASE_URL: /api/v1
+        VITE_SERVER_URL: ""
+    container_name: lexperts-frontend
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+
+    # Only start after backend is healthy (avoids 502 on first load)
+    depends_on:
+      backend:
+        condition: service_healthy
+
+    networks:
+      - lexperts-net
+
+# ── Named volumes ─────────────────────────────────────────────────────────────
+# Data lives here even after "docker compose down"
+# Deleted only with "docker compose down -v" (careful!)
+volumes:
+  uploads_data:
+    name: lexperts_uploads
+  logs_data:
+    name: lexperts_logs
+
+# ── Internal network ──────────────────────────────────────────────────────────
+# Services reach each other by name: http://backend:5001
+# Not accessible from outside the EC2 instance
+networks:
+  lexperts-net:
+    driver: bridge
