@@ -7,6 +7,7 @@ const Booking = require('../booking/booking.model');
 const AppError = require('../../utils/AppError');
 const logger = require('../../utils/logger');
 const { sendPaymentConfirmedClientEmail, sendPaymentConfirmedExpertEmail } = require('../../utils/emailService');
+const { createMeetLink } = require('../../utils/googleMeet');
 
 const getRazorpay = () => {
   if (!process.env.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID === 'rzp_test_REPLACE_ME') {
@@ -116,20 +117,35 @@ const verifyAndConfirm = async ({ razorpay_order_id, razorpay_payment_id, razorp
 
   logger.info('Booking confirmed after payment', { bookingId, razorpay_payment_id });
 
-  // Fire-and-forget emails to both parties
-  sendPaymentConfirmedClientEmail(
-    booking,
-    booking.clientId?.email,
-    booking.clientId?.name,
-    booking.expertId?.userId?.name || 'Expert'
-  ).catch(() => {});
+  // ── Generate Meet link then email both parties ───────────────────────────────
+  const clientName = booking.clientId?.name || 'Client';
+  const expertName = booking.expertId?.userId?.name || 'Expert';
 
-  sendPaymentConfirmedExpertEmail(
-    booking,
-    booking.expertId?.userId?.email,
-    booking.expertId?.userId?.name || 'Expert',
-    booking.clientId?.name || 'Client'
-  ).catch(() => {});
+  // Run in background: generate link → save → email (so API responds instantly)
+  ;(async () => {
+    try {
+      const meetLink = await createMeetLink(booking, clientName, expertName);
+      if (meetLink) {
+        await Booking.findByIdAndUpdate(bookingId, { meetLink });
+        booking.meetLink = meetLink;
+      }
+    } catch { /* link generation failed — Jitsi fallback handled inside createMeetLink */ }
+
+    // Send confirmation emails (with meet link if available)
+    sendPaymentConfirmedClientEmail(
+      booking,
+      booking.clientId?.email,
+      clientName,
+      expertName
+    ).catch(() => {});
+
+    sendPaymentConfirmedExpertEmail(
+      booking,
+      booking.expertId?.userId?.email,
+      expertName,
+      clientName
+    ).catch(() => {});
+  })();
 
   return booking;
 };

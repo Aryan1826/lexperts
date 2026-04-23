@@ -10,17 +10,31 @@ import { SERVER_URL } from '../config'
 import styles from './ExpertDashboard.module.css'
 
 const STATUS_COLORS = {
-  pending: '#FF9800',
-  confirmed: '#4CAF50',
-  completed: '#2196F3',
-  cancelled: '#F44336',
+  pending:         '#FF9800',
+  payment_pending: '#9C27B0',
+  confirmed:       '#4CAF50',
+  completed:       '#2196F3',
+  cancelled:       '#F44336',
+  payment_expired: '#9E9E9E',
 }
 
 const STATUS_LABELS = {
-  pending: 'Awaiting Your Confirmation',
-  confirmed: 'Confirmed',
-  completed: 'Completed',
-  cancelled: 'Cancelled',
+  pending:         'Awaiting Your Confirmation',
+  payment_pending: 'Awaiting Client Payment',
+  confirmed:       'Confirmed',
+  completed:       'Completed',
+  cancelled:       'Cancelled',
+  payment_expired: 'Payment Expired',
+}
+
+function getMeetStatus(booking) {
+  if (!booking.meetLink || booking.status !== 'confirmed') return null
+  const slotStart = new Date(`${booking.date}T${booking.slot.start}:00`)
+  const slotEnd   = new Date(`${booking.date}T${booking.slot.end}:00`)
+  const now = new Date()
+  if (now < slotStart) return { state: 'upcoming', label: `Opens at ${booking.slot.start}` }
+  if (now > slotEnd)   return { state: 'ended',    label: 'Meeting ended' }
+  return { state: 'active', label: 'Join Meeting' }
 }
 
 export default function ExpertDashboard() {
@@ -469,6 +483,33 @@ export default function ExpertDashboard() {
 
                     {/* ── Footer Actions ── */}
                     <div className={styles.cardFooter}>
+                      {/* Join Meeting — time-locked */}
+                      {(() => {
+                        const meet = getMeetStatus(booking)
+                        if (!meet) return null
+                        const active = meet.state === 'active'
+                        return (
+                          <a
+                            href={active ? booking.meetLink : undefined}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={!active ? (e) => e.preventDefault() : undefined}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '6px',
+                              height: '38px', padding: '0 20px', borderRadius: '6px',
+                              fontWeight: 700, fontSize: '14px', textDecoration: 'none',
+                              fontFamily: 'var(--font-sans)', transition: 'background 0.15s',
+                              background: active ? '#1a73e8' : '#e0e0e0',
+                              color: active ? 'white' : '#9e9e9e',
+                              cursor: active ? 'pointer' : 'not-allowed',
+                            }}
+                            title={!active ? meet.label : 'Join Google Meet'}
+                          >
+                            🎥 {meet.label}
+                          </a>
+                        )
+                      })()}
+
                       {booking.status === 'pending' && (
                         <>
                           <button

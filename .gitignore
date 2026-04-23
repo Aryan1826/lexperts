@@ -1,20 +1,24 @@
 # Dependencies
 node_modules/
-client/node_modules/
+frontend/node_modules/
+backend/node_modules/
 
 # Environment — NEVER commit this
 .env
 .env.local
 .env.production
 
-# Logs
-logs/
+# Logs — ignore content but keep directory placeholder
+backend/logs/*.log
+backend/logs/*.gz
+backend/logs/*-audit.json
 *.log
 npm-debug.log*
+!backend/logs/.gitkeep
 
 # Build output
-client/dist/
-client/build/
+frontend/dist/
+frontend/build/
 
 # OS
 .DS_Store
@@ -28,5 +32,7 @@ Thumbs.db
 ecosystem.config.js.bak
 
 # Uploaded files — keep folder structure but not actual files
-uploads/bookings/*
-!uploads/bookings/.gitkeep
+backend/uploads/bookings/*
+!backend/uploads/bookings/.gitkeep
+backend/uploads/sanad/*
+!backend/uploads/sanad/.gitkeep
