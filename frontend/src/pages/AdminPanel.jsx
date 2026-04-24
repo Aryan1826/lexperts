@@ -14,6 +14,7 @@ import {
   getAdminBookings,
 } from '../services/admin.service'
 import styles from './AdminPanel.module.css'
+import { SERVER_URL } from '../config'
 
 // ─── Badge helpers ─────────────────────────────────────────────────────────────
 const VERIFICATION_COLORS = {
@@ -675,7 +676,7 @@ export default function AdminPanel() {
                         <span className={styles.metaLabel}>Sanad Document</span>
                         {expert.sanadDocument ? (
                           <a
-                            href={`http://localhost:5001${expert.sanadDocument}`}
+                            href={`${SERVER_URL}${expert.sanadDocument}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className={styles.sanadLink}

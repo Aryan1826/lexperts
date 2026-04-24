@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar'
 import ErrorBoundary from '../components/ErrorBoundary'
 import { ProfileFormSkeleton } from '../components/LoadingSkeleton'
 import { createProfile, getMyProfile, updateProfile, uploadSanad } from '../services/expert.service'
+import { SERVER_URL } from '../config'
 import styles from './ExpertProfile.module.css'
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -421,7 +422,7 @@ export default function ExpertProfile() {
                     </span>
                     {sanadCurrent && (
                       <a
-                        href={`http://localhost:5001${sanadCurrent}`}
+                        href={`${SERVER_URL}${sanadCurrent}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{ marginLeft: '12px', fontSize: '13px', color: 'var(--gold)', textDecoration: 'underline' }}
