@@ -179,7 +179,7 @@ This project helped in gaining practical experience with:
 
 ## Contributors
 
-**Aryan Patel**
+**Aryan Rangani**
 
 ---
 
